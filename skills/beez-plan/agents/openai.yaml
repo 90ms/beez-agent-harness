@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Plan"
+  short_description: "Break a specification into verifiable tasks"
+  default_prompt: "Use $beez-plan to create an implementation plan for this specification."

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "install": "{{packageManager}} install",
+    "test": "{{packageManager}} run test",
+    "lint": "{{packageManager}} run lint",
+    "build": "{{packageManager}} run build"
+  },
+  "boundaries": [
+    "Do not expose server secrets through NEXT_PUBLIC_ variables.",
+    "Preserve unrelated user changes.",
+    "Do not perform destructive or externally visible actions without authority."
+  ]
+}

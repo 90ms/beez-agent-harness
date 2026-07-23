@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "test": "npm test",
+    "check": "npm run check",
+    "validate": "npm run validate"
+  },
+  "boundaries": [
+    "Do not commit secrets or machine-specific configuration.",
+    "Preserve unrelated user changes.",
+    "Do not perform destructive or externally visible actions without authority.",
+    "Keep the CLI runtime dependency-free.",
+    "Keep Agent Skills concise and validate every SKILL.md before release."
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Verify"
+  short_description: "Prove software behavior with fresh evidence"
+  default_prompt: "Use $beez-verify to verify this change with fresh evidence."

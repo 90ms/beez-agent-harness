@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Implement"
+  short_description: "Implement changes in small verified slices"
+  default_prompt: "Use $beez-implement to build this change incrementally."

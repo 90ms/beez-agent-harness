@@ -1,0 +1,4 @@
+interface:
+  display_name: "Using Beez Harness"
+  short_description: "Route software work through the Beez lifecycle"
+  default_prompt: "Use $using-beez-harness to route and complete this software task."

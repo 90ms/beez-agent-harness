@@ -1,0 +1,47 @@
+{
+  "name": "beez-agent-harness",
+  "version": "0.1.0",
+  "description": "Codex-first Agent Skills and a project adapter for evidence-driven software delivery.",
+  "type": "module",
+  "bin": {
+    "beez-harness": "./bin/beez-harness.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check bin/beez-harness.js && node --check lib/harness.js && node --check scripts/validate.mjs",
+    "validate": "node scripts/validate.mjs"
+  },
+  "files": [
+    ".agents/",
+    ".codex-plugin/",
+    "bin/",
+    "lib/",
+    "presets/",
+    "schemas/",
+    "skills/",
+    "templates/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "SPEC.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "developer-tools",
+    "workflow"
+  ],
+  "author": "Beez",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/90ms/beez-agent-harness.git"
+  },
+  "homepage": "https://github.com/90ms/beez-agent-harness#readme",
+  "bugs": {
+    "url": "https://github.com/90ms/beez-agent-harness/issues"
+  }
+}

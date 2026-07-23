@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Spec"
+  short_description: "Turn a software request into a bounded specification"
+  default_prompt: "Use $beez-spec to define this change before implementation."

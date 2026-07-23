@@ -1,0 +1,20 @@
+{
+  "name": "beez-agent-harness",
+  "interface": {
+    "displayName": "Beez Agent Harness"
+  },
+  "plugins": [
+    {
+      "name": "beez-agent-harness",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

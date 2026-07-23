@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beez.dev/schemas/agent-harness-manifest-v1.json",
+  "title": "Beez Agent Harness Manifest",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "harnessVersion",
+    "preset",
+    "managedFiles",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "harnessVersion": {
+      "type": "string"
+    },
+    "preset": {
+      "enum": ["base", "nextjs"]
+    },
+    "managedFiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

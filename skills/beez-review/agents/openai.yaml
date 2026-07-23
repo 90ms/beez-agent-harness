@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Review"
+  short_description: "Review changes for correctness risk and maintainability"
+  default_prompt: "Use $beez-review to review this change before merge."

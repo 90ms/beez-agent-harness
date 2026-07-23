@@ -1,0 +1,23 @@
+{
+  "name": "beez-agent-harness",
+  "version": "0.1.0",
+  "description": "Reusable engineering workflows and project adapters for Codex.",
+  "author": {
+    "name": "Beez",
+    "url": "https://github.com/90ms"
+  },
+  "homepage": "https://github.com/90ms/beez-agent-harness#readme",
+  "repository": "https://github.com/90ms/beez-agent-harness",
+  "license": "MIT",
+  "keywords": ["agent-skills", "codex", "development-workflow", "harness"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Beez Agent Harness",
+    "shortDescription": "Reusable, evidence-driven engineering workflows.",
+    "longDescription": "Route software work through specification, planning, incremental implementation, verification, and review workflows.",
+    "developerName": "Beez",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "defaultPrompt": "Use Beez Agent Harness to route and complete this software task."
+  }
+}
