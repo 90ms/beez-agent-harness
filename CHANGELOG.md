@@ -7,6 +7,8 @@ Versioning.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-24
+
 ### Added
 
 - Initial v0.1 specification.

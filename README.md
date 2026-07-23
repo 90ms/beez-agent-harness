@@ -71,8 +71,6 @@ Add `--global` to make them available across projects.
 
 ## Initialize a project
 
-After the CLI package is published:
-
 ```bash
 npx beez-agent-harness init --preset base
 npx beez-agent-harness doctor

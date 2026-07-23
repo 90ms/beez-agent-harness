@@ -4,7 +4,7 @@
   "description": "Codex-first Agent Skills and a project adapter for evidence-driven software delivery.",
   "type": "module",
   "bin": {
-    "beez-harness": "./bin/beez-harness.js"
+    "beez-harness": "bin/beez-harness.js"
   },
   "scripts": {
     "test": "node --test",
@@ -43,5 +43,8 @@
   "homepage": "https://github.com/90ms/beez-agent-harness#readme",
   "bugs": {
     "url": "https://github.com/90ms/beez-agent-harness/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
