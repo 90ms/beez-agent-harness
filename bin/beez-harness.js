@@ -10,8 +10,10 @@ import {
 } from "../lib/harness.js";
 import {
   finishRun,
+  gcRuns,
   listRuns,
   resolveRun,
+  resumeRun,
   startRun,
 } from "../lib/runs.js";
 import { verifyProject } from "../lib/verify.js";
@@ -46,11 +48,14 @@ Options:
   beez-harness run start
   beez-harness run status [--run <id>]
   beez-harness run list
+  beez-harness run resume [--run <id>]
   beez-harness run finish [--run <id>] [--state completed|failed|cancelled]
+  beez-harness run gc [--keep <count>]
 
 Options:
-  --run <id>     Select a run (status and finish)
+  --run <id>     Select a run (status, resume, and finish)
   --state <name> Terminal state (default: completed)
+  --keep <count> Keep this many newest terminal runs (default: 20)
   -h, --help     Show this help`,
     verify: `Usage:
   beez-harness verify --command <name> [--run <id>]
@@ -72,7 +77,7 @@ Usage:
   beez-harness init [--preset base|nextjs]
   beez-harness doctor
   beez-harness update [--check]
-  beez-harness run start|status|list|finish
+  beez-harness run start|status|list|resume|finish|gc
   beez-harness verify --command <name>|--required
   beez-harness version
   beez-harness help`;
@@ -206,13 +211,19 @@ function parseRunArgs(args) {
     if (args.length > 1) argumentError("run", args[1]);
     return { help: true };
   }
-  if (!["start", "status", "list", "finish"].includes(subcommand)) {
+  if (
+    !["start", "status", "list", "resume", "finish", "gc"].includes(
+      subcommand,
+    )
+  ) {
     argumentError("run", subcommand);
   }
 
   let runId;
   let state = "completed";
   let stateProvided = false;
+  let keep = 20;
+  let keepProvided = false;
   for (let index = 0; index < options.length; index += 1) {
     const option = options[index];
     if (HELP_FLAGS.has(option)) {
@@ -232,6 +243,19 @@ function parseRunArgs(args) {
       state = optionValue(options, index, "--state", "run");
       stateProvided = true;
       index += 1;
+    } else if (option === "--keep") {
+      if (keepProvided) {
+        throw new Error(`--keep may only be specified once\n\n${usage("run")}`);
+      }
+      const value = optionValue(options, index, "--keep", "run");
+      if (!/^\d+$/.test(value)) {
+        throw new Error(
+          `--keep must be a non-negative integer\n\n${usage("run")}`,
+        );
+      }
+      keep = Number(value);
+      keepProvided = true;
+      index += 1;
     } else {
       argumentError("run", option);
     }
@@ -243,7 +267,16 @@ function parseRunArgs(args) {
   if (subcommand !== "finish" && stateProvided) {
     argumentError("run", "--state");
   }
-  return { help: false, runId, state, subcommand };
+  if (subcommand !== "gc" && keepProvided) {
+    argumentError("run", "--keep");
+  }
+  if (subcommand === "gc" && runId) {
+    argumentError("run", "--run");
+  }
+  if (subcommand === "gc" && stateProvided) {
+    argumentError("run", "--state");
+  }
+  return { help: false, keep, runId, state, subcommand };
 }
 
 function printRun(run) {
@@ -357,7 +390,7 @@ async function main() {
       break;
     }
     case "run": {
-      const { help, runId, state, subcommand } = parseRunArgs(args);
+      const { help, keep, runId, state, subcommand } = parseRunArgs(args);
       if (help) {
         console.log(usage("run"));
         break;
@@ -375,6 +408,13 @@ async function main() {
             console.log(`${run.id}\t${run.state}\t${run.createdAt}`);
           }
         }
+      } else if (subcommand === "resume") {
+        printRun(await resumeRun({ cwd, runId }));
+      } else if (subcommand === "gc") {
+        const result = await gcRuns({ cwd, keep });
+        console.log(
+          `Removed ${result.removed.length} terminal run(s); kept ${result.kept}.`,
+        );
       } else {
         printRun(await finishRun({ cwd, runId, state }));
       }

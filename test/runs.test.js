@@ -14,8 +14,10 @@ import { fileURLToPath } from "node:url";
 import { initProject } from "../lib/harness.js";
 import {
   finishRun,
+  gcRuns,
   listRuns,
   readRun,
+  resumeRun,
   startRun,
 } from "../lib/runs.js";
 import { verifyProject } from "../lib/verify.js";
@@ -292,6 +294,80 @@ test("rejects verification after project configuration changes", async () => {
   );
 });
 
+test("blocks completion when configuration changes after verification", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"), { recursive: true });
+  const projectFile = path.join(cwd, ".harness/project.json");
+  const project = {
+    schemaVersion: 1,
+    commands: { test: 'node -e "process.exit(0)"' },
+    verification: { required: ["test"], timeoutMs: 10_000 },
+    boundaries: [],
+  };
+  await writeFile(projectFile, `${JSON.stringify(project)}\n`);
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const active = await startRun({ cwd, packageRoot });
+  await verifyProject({
+    cwd,
+    runId: active.id,
+    commandNames: ["test"],
+  });
+  project.boundaries.push("Changed after verification.");
+  await writeFile(projectFile, `${JSON.stringify(project)}\n`);
+
+  await assert.rejects(
+    finishRun({ cwd, runId: active.id, state: "completed" }),
+    /configuration changed after the run started/,
+  );
+});
+
+test("resumes an interrupted active run without changing its state", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const active = await startRun({ cwd, packageRoot });
+
+  const resumed = await resumeRun({ cwd, runId: active.id });
+  const events = (
+    await readFile(
+      path.join(cwd, ".harness/runs", active.id, "events.jsonl"),
+      "utf8",
+    )
+  )
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+
+  assert.equal(resumed.state, "active");
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ["run.started", "run.resumed"],
+  );
+  assert.deepEqual(
+    events.map((event) => event.sequence),
+    [1, 2],
+  );
+});
+
+test("garbage collection removes only old terminal runs", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const first = await startRun({ cwd, packageRoot });
+  await finishRun({ cwd, runId: first.id, state: "cancelled" });
+  const second = await startRun({ cwd, packageRoot });
+  await finishRun({ cwd, runId: second.id, state: "failed" });
+  const active = await startRun({ cwd, packageRoot });
+
+  const result = await gcRuns({ cwd, keep: 1 });
+  const remaining = await listRuns(cwd);
+
+  assert.equal(result.removed.length, 1);
+  assert.equal(result.removed[0], first.id);
+  assert.deepEqual(
+    new Set(remaining.map((run) => run.id)),
+    new Set([second.id, active.id]),
+  );
+});
+
 test("CLI runs required verification and then completes the run", async () => {
   const cwd = await temporaryProject();
   await mkdir(path.join(cwd, ".harness"), { recursive: true });
@@ -314,4 +390,24 @@ test("CLI runs required verification and then completes the run", async () => {
   assert.match(verification.stdout, /test: passed/);
   assert.equal(finish.code, 0);
   assert.match(finish.stdout, /State: completed/);
+});
+
+test("CLI resumes active runs and prunes terminal history", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const firstStart = await runCli(cwd, ["run", "start"]);
+  const firstId = firstStart.stdout.match(/Run: ([0-9a-f-]{36})/)?.[1];
+  await runCli(cwd, ["run", "finish", "--state", "cancelled"]);
+  await runCli(cwd, ["run", "start"]);
+
+  const resume = await runCli(cwd, ["run", "resume"]);
+  const gc = await runCli(cwd, ["run", "gc", "--keep", "0"]);
+  const runs = await listRuns(cwd);
+
+  assert.equal(resume.code, 0);
+  assert.match(resume.stdout, /State: active/);
+  assert.equal(gc.code, 0);
+  assert.match(gc.stdout, /Removed 1 terminal run/);
+  assert.equal(runs.some((run) => run.id === firstId), false);
+  assert.equal(runs.filter((run) => run.state === "active").length, 1);
 });
