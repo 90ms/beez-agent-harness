@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check bin/beez-harness.js && node --check lib/harness.js && node --check scripts/validate.mjs && node --check scripts/check-release.mjs",
+    "check": "node --check bin/beez-harness.js && node --check lib/harness.js && node --check lib/runs.js && node --check scripts/validate.mjs && node --check scripts/check-release.mjs",
     "validate": "node scripts/validate.mjs"
   },
   "files": [

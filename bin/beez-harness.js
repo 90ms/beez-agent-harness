@@ -8,6 +8,12 @@ import {
   readHarnessVersion,
   updateProject,
 } from "../lib/harness.js";
+import {
+  finishRun,
+  listRuns,
+  resolveRun,
+  startRun,
+} from "../lib/runs.js";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -35,6 +41,16 @@ Options:
   --check     Report available updates or drift without writing
   --diff      Preview managed-file changes without writing
   -h, --help  Show this help`,
+    run: `Usage:
+  beez-harness run start
+  beez-harness run status [--run <id>]
+  beez-harness run list
+  beez-harness run finish [--run <id>] [--state completed|failed|cancelled]
+
+Options:
+  --run <id>     Select a run (status and finish)
+  --state <name> Terminal state (default: completed)
+  -h, --help     Show this help`,
     version: `Usage:
   beez-harness version`,
   };
@@ -46,6 +62,7 @@ Usage:
   beez-harness init [--preset base|nextjs]
   beez-harness doctor
   beez-harness update [--check]
+  beez-harness run start|status|list|finish
   beez-harness version
   beez-harness help`;
 }
@@ -157,11 +174,77 @@ function parseHelpArgs(args) {
   if (args.length === 0) return undefined;
   if (
     args.length === 1 &&
-    ["init", "doctor", "update", "version"].includes(args[0])
+    ["init", "doctor", "update", "run", "version"].includes(args[0])
   ) {
     return args[0];
   }
   argumentError("help", args[0]);
+}
+
+function optionValue(args, index, option, command) {
+  const value = args[index + 1];
+  if (!value || value.startsWith("-")) {
+    throw new Error(`${option} requires a value\n\n${usage(command)}`);
+  }
+  return value;
+}
+
+function parseRunArgs(args) {
+  const [subcommand, ...options] = args;
+  if (!subcommand || HELP_FLAGS.has(subcommand)) {
+    if (args.length > 1) argumentError("run", args[1]);
+    return { help: true };
+  }
+  if (!["start", "status", "list", "finish"].includes(subcommand)) {
+    argumentError("run", subcommand);
+  }
+
+  let runId;
+  let state = "completed";
+  let stateProvided = false;
+  for (let index = 0; index < options.length; index += 1) {
+    const option = options[index];
+    if (HELP_FLAGS.has(option)) {
+      if (options.length !== 1) argumentError("run", option);
+      return { help: true };
+    }
+    if (option === "--run") {
+      if (runId) {
+        throw new Error(`--run may only be specified once\n\n${usage("run")}`);
+      }
+      runId = optionValue(options, index, "--run", "run");
+      index += 1;
+    } else if (option === "--state") {
+      if (stateProvided) {
+        throw new Error(`--state may only be specified once\n\n${usage("run")}`);
+      }
+      state = optionValue(options, index, "--state", "run");
+      stateProvided = true;
+      index += 1;
+    } else {
+      argumentError("run", option);
+    }
+  }
+
+  if ((subcommand === "start" || subcommand === "list") && options.length > 0) {
+    argumentError("run", options[0]);
+  }
+  if (subcommand !== "finish" && stateProvided) {
+    argumentError("run", "--state");
+  }
+  return { help: false, runId, state, subcommand };
+}
+
+function printRun(run) {
+  console.log(
+    [
+      `Run: ${run.id}`,
+      `State: ${run.state}`,
+      `Created: ${run.createdAt}`,
+      `Updated: ${run.updatedAt}`,
+      `Required verification: ${run.verification.required.join(", ") || "none"}`,
+    ].join("\n"),
+  );
 }
 
 async function main() {
@@ -213,6 +296,30 @@ async function main() {
       console.log(result.message);
       if (result.diff) console.log(result.diff);
       if (check && result.changed) process.exitCode = 1;
+      break;
+    }
+    case "run": {
+      const { help, runId, state, subcommand } = parseRunArgs(args);
+      if (help) {
+        console.log(usage("run"));
+        break;
+      }
+      if (subcommand === "start") {
+        printRun(await startRun({ cwd, packageRoot }));
+      } else if (subcommand === "status") {
+        printRun(await resolveRun(cwd, runId));
+      } else if (subcommand === "list") {
+        const runs = await listRuns(cwd);
+        if (runs.length === 0) {
+          console.log("No harness runs found.");
+        } else {
+          for (const run of runs) {
+            console.log(`${run.id}\t${run.state}\t${run.createdAt}`);
+          }
+        }
+      } else {
+        printRun(await finishRun({ cwd, runId, state }));
+      }
       break;
     }
     case "version": {
