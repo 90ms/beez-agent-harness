@@ -638,6 +638,19 @@ test("CLI provides command-specific help without initializing a project", async 
   await assert.rejects(readFile(path.join(cwd, ".harness/manifest.json")));
 });
 
+test("CLI global help lists every v0.3 command surface", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["--help"]);
+
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /init .*--dry-run/);
+  assert.match(result.stdout, /doctor \[--json\]/);
+  assert.match(result.stdout, /update .*--diff/);
+  assert.match(result.stdout, /run start\|status\|list\|resume\|finish\|gc/);
+  assert.match(result.stdout, /verify --command <name>\|--required/);
+});
+
 test("CLI supports the conventional --version alias", async () => {
   const cwd = await temporaryProject();
 

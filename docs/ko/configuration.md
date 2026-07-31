@@ -16,6 +16,10 @@ Beez Agent Harness는 저장소마다 다른 실행 명령과 작업 경계를
     "lint": "npm run lint",
     "build": "npm run build"
   },
+  "verification": {
+    "required": ["test", "lint", "build"],
+    "timeoutMs": 600000
+  },
   "boundaries": [
     "Do not commit secrets.",
     "Preserve unrelated user changes."
@@ -29,10 +33,10 @@ Beez Agent Harness는 저장소마다 다른 실행 명령과 작업 경계를
 
 ### `commands`
 
-에이전트가 검증에 사용할 실제 프로젝트 명령을 문자열로 선언합니다. Harness
-CLI가 이 명령을 자동 실행하지는 않습니다. 프로젝트에서 지원하지 않는 명령을
-추측해 넣지 말고, `package.json`이나 기존 개발 문서에서 확인한 명령만
-기록합니다.
+에이전트와 Harness가 검증에 사용할 실제 프로젝트 명령을 문자열로
+선언합니다. Harness CLI는 사용자가 `verify`를 실행하고 명령을 선택한
+경우에만 실행합니다. 프로젝트에서 지원하지 않는 명령을 추측해 넣지 말고,
+`package.json`이나 기존 개발 문서에서 확인한 명령만 기록합니다.
 
 ```json
 {
@@ -44,6 +48,28 @@ CLI가 이 명령을 자동 실행하지는 않습니다. 프로젝트에서 지
   }
 }
 ```
+
+### `verification`
+
+선택 필드입니다. 생략한 기존 v0.2 설정도 유효하며 이때 필수 명령은
+없습니다.
+
+- `required`: run을 `completed`로 끝내기 전에 통과해야 하는 `commands`의
+  이름입니다. 중복되거나 존재하지 않는 명령은 허용하지 않습니다.
+- `timeoutMs`: 각 명령의 제한 시간입니다. 1,000~3,600,000 사이의
+  정수이며 생략하면 300,000ms입니다.
+
+```json
+{
+  "verification": {
+    "required": ["test", "lint"],
+    "timeoutMs": 300000
+  }
+}
+```
+
+`verify --required`는 배열 순서대로 명령을 실행합니다. 명령 원문과 환경
+변수, stdout/stderr 원문은 run 기록에 저장하지 않습니다.
 
 ### `boundaries`
 
@@ -95,6 +121,7 @@ npx beez-agent-harness init --preset nextjs
 | `.harness/project.json` | 프로젝트 | 가능 |
 | `.harness/manifest.json` | Harness | 금지 |
 | `.harness/generated/AGENTS.md` | Harness | 금지 |
+| `.harness/runs/**` | 운영 기록 | CLI로 관리 |
 | 루트 `AGENTS.md` | 프로젝트 | 가능 |
 
 프로젝트 고유 정책은 `.harness/project.json` 또는 루트 `AGENTS.md`에
@@ -106,5 +133,5 @@ npx beez-agent-harness init --preset nextjs
 npx beez-agent-harness doctor
 ```
 
-`doctor`는 필수 필드, 명령과 경계의 타입, 관리 경로와 해시, 생성 안내문,
-Harness 버전을 점검합니다.
+`doctor`는 필수 필드, 명령·검증·경계의 타입, 검증 명령 참조, 관리 경로와
+해시, 생성 안내문, Harness 버전을 점검합니다.

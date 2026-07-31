@@ -37,6 +37,9 @@ active -> completed
 명령어 원문, 환경 변수, stdout/stderr 원문과 모델 대화는 기본적으로
 저장하지 않습니다.
 
+`run resume`은 active 상태를 유지하면서 재개 이벤트를 남깁니다. `run gc`는
+보존 개수보다 오래된 terminal run만 제거하며 active run은 삭제하지 않습니다.
+
 ## 안전 경계
 
 - preview와 check 명령은 파일을 쓰지 않습니다.

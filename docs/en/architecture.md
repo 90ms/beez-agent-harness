@@ -37,6 +37,10 @@ The run manifest records the configuration digest, Git baseline, timestamps,
 and verification results. It does not persist command text, environment values,
 raw stdout/stderr, or model transcripts by default.
 
+`run resume` preserves the active state while appending a resume event. `run
+gc` removes only terminal runs older than the requested retention count and
+never deletes an active run.
+
 ## Safety boundaries
 
 - Preview and check commands do not write files.

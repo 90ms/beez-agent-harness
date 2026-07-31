@@ -74,9 +74,9 @@ Options:
   return `Beez Agent Harness
 
 Usage:
-  beez-harness init [--preset base|nextjs]
-  beez-harness doctor
-  beez-harness update [--check]
+  beez-harness init [--preset base|nextjs] [--dry-run]
+  beez-harness doctor [--json]
+  beez-harness update [--check] [--diff]
   beez-harness run start|status|list|resume|finish|gc
   beez-harness verify --command <name>|--required
   beez-harness version

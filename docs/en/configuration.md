@@ -16,6 +16,10 @@ Beez Agent Harness stores repository-specific commands and boundaries in
     "lint": "npm run lint",
     "build": "npm run build"
   },
+  "verification": {
+    "required": ["test", "lint", "build"],
+    "timeoutMs": 600000
+  },
   "boundaries": [
     "Do not commit secrets.",
     "Preserve unrelated user changes."
@@ -30,10 +34,10 @@ The version of the configuration format. The only currently supported value is
 
 ### `commands`
 
-Declare real project verification commands as strings. The Harness CLI does not
-run these commands automatically. Do not invent unsupported commands; record
-only commands confirmed in files such as `package.json` or existing development
-documentation.
+Declare real project verification commands as strings. The Harness runs one
+only when the operator invokes `verify` and selects it. Do not invent
+unsupported commands; record only commands confirmed in files such as
+`package.json` or existing development documentation.
 
 ```json
 {
@@ -45,6 +49,28 @@ documentation.
   }
 }
 ```
+
+### `verification`
+
+This field is optional. Existing v0.2 configuration without it remains valid
+and has no implicitly required commands.
+
+- `required`: Names from `commands` that must pass before a run can become
+  `completed`. Duplicates and unknown names are rejected.
+- `timeoutMs`: Per-command timeout from 1,000 through 3,600,000 milliseconds.
+  The default is 300,000 when omitted.
+
+```json
+{
+  "verification": {
+    "required": ["test", "lint"],
+    "timeoutMs": 300000
+  }
+}
+```
+
+`verify --required` executes commands in array order. Run records do not
+persist command text, environment values, or raw stdout/stderr.
 
 ### `boundaries`
 
@@ -96,6 +122,7 @@ npx beez-agent-harness init --preset nextjs
 | `.harness/project.json` | Project | Yes |
 | `.harness/manifest.json` | Harness | No |
 | `.harness/generated/AGENTS.md` | Harness | No |
+| `.harness/runs/**` | Operational state | Manage through the CLI |
 | Root `AGENTS.md` | Project | Yes |
 
 Put project-specific policy in `.harness/project.json` or the root `AGENTS.md`.
@@ -107,5 +134,6 @@ Editing generated guidance directly causes `doctor` to report drift.
 npx beez-agent-harness doctor
 ```
 
-`doctor` checks required fields, command and boundary types, managed paths and
-hashes, generated guidance, and the Harness version.
+`doctor` checks required fields, command, verification, and boundary types,
+verification references, managed paths and hashes, generated guidance, and the
+Harness version.

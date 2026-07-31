@@ -22,7 +22,7 @@ npx beez-agent-harness update --check
 npx beez-agent-harness update
 ```
 
-Do not edit the manifest to change presets. The v0.1 CLI does not provide a
+Do not edit the manifest to change presets. The CLI does not provide a
 preset migration command after initialization.
 
 ## Cannot read the manifest or project configuration
@@ -94,6 +94,38 @@ The update preserves `project.json` and an existing root `AGENTS.md`.
 `update --check` intentionally exits with code `1` when it detects an update or
 drift. Inspect the log, run `update` locally, and review the generated changes
 before committing them.
+
+## Run cannot complete
+
+```text
+Run cannot complete; required verification has not passed
+```
+
+Check `verification.required` in `project.json` and run verification against
+the active run.
+
+```bash
+npx beez-agent-harness run status
+npx beez-agent-harness verify --required
+npx beez-agent-harness run finish
+```
+
+When configuration changed after start, finish the current run as `failed` or
+`cancelled`, then start a new run. Do not reuse evidence produced for the old
+configuration.
+
+## An active run remains after interruption
+
+Process interruption does not silently mark a run failed. Inspect it and
+continue verification or finish it explicitly.
+
+```bash
+npx beez-agent-harness run resume
+npx beez-agent-harness run finish --state cancelled
+```
+
+Use `run gc --keep <count>` to prune terminal history. Active runs are never
+deleted.
 
 ## Unsupported option
 

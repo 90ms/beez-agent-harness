@@ -112,7 +112,7 @@ The zero-dependency Node.js CLI provides:
 - `beez-harness init [--preset base|nextjs] [--dry-run]`
 - `beez-harness doctor [--json]`
 - `beez-harness update [--check] [--diff]`
-- `beez-harness run start|status|list|finish`
+- `beez-harness run start|status|list|resume|finish|gc`
 - `beez-harness verify --command <name>`
 - `beez-harness verify --required`
 - `beez-harness version`
@@ -238,6 +238,10 @@ npm pack --dry-run
 ```
 
 CI verifies the supported Node.js versions and Windows path/process behavior.
+
+Behavior evaluation uses a provider-neutral result contract and deterministic
+scorer. The harness does not invoke models; external runners can submit the same
+case result format for comparison.
 
 ## Risks and rollback
 

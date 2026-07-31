@@ -20,4 +20,16 @@ its boundaries. Inspect repository status and preserve unrelated work.
 Use the smallest sufficient workflow. Do not broaden the requested scope or
 claim completion without fresh evidence.
 
+## Operational evidence
+
+When the Beez CLI is available and the task changes software:
+
+1. Reuse the active run or start one with `beez-harness run start`.
+2. Execute configured checks with `beez-harness verify`.
+3. Finish as `completed` only after required verification passes.
+4. Use `failed` or `cancelled` when work stops without satisfying the gate.
+
+Run records contain result metadata, not raw command output or environment
+values. Do not edit `.harness/runs/` by hand.
+
 {{presetGuidance}}

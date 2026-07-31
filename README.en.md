@@ -6,8 +6,8 @@ Beez Agent Harness is a **Codex-first collection of reusable Agent Skills and a
 thin project adapter** for consistent software delivery.
 
 It routes work through specification, planning, incremental implementation,
-verification, and review while keeping project-specific commands and boundaries
-inside each repository.
+verification, and review while keeping project-specific commands, boundaries,
+and local run evidence inside each repository.
 
 ## Documentation guide
 
@@ -16,6 +16,8 @@ inside each repository.
 - [Installation](#installation): Install the full plugin or selected Skills
 - [Using it in a project](#using-it-in-a-project): Choose a preset and configure
   the project
+- [Runs and verification](#runs-and-verification): Record task state and
+  verification evidence
 - [Updates and diagnostics](#updates-and-diagnostics): Update safely and inspect
   project health
 - [Development and contribution](#development-and-contribution): Repository
@@ -58,6 +60,10 @@ After initialization, edit `.harness/project.json` for the project.
     "lint": "npm run lint",
     "build": "npm run build"
   },
+  "verification": {
+    "required": ["test", "lint", "build"],
+    "timeoutMs": 600000
+  },
   "boundaries": [
     "Do not commit secrets.",
     "Preserve unrelated user changes."
@@ -66,13 +72,26 @@ After initialization, edit `.harness/project.json` for the project.
 ```
 
 Agents use the commands and boundaries declared here when working in the
-project.
+project. Commands under `verification.required` must pass before a run can
+complete.
+
+### 4. Record a run and its verification
+
+```bash
+npx beez-agent-harness run start
+npx beez-agent-harness verify --required
+npx beez-agent-harness run finish
+```
+
+Command output stays in the current terminal. Run state records only the
+command name and digest, exit status, and duration. It does not persist raw
+output or environment values.
 
 ## Core concepts
 
 Beez Agent Harness is not an autonomous agent runtime or a framework-specific
-project generator. It adds two thin layers to an existing repository to improve
-the consistency and quality of software work.
+project generator. It adds Skills, project rules, and local run evidence to an
+existing repository.
 
 ### Agent Skills
 
@@ -104,15 +123,20 @@ repository:
 .harness/
 ├── manifest.json
 ├── project.json
-└── generated/
-    └── AGENTS.md
+├── generated/
+│   └── AGENTS.md
+└── runs/
+    └── <run-id>/
+        ├── manifest.json
+        └── events.jsonl
 ```
 
 | File | Ownership and purpose |
 | --- | --- |
 | `.harness/manifest.json` | Records the Harness version and managed-file hashes |
-| `.harness/project.json` | Project-owned commands and boundaries |
+| `.harness/project.json` | Project-owned commands, required verification, and boundaries |
 | `.harness/generated/AGENTS.md` | Harness-managed guidance that can be refreshed safely |
+| `.harness/runs/**` | CLI-generated run evidence that package updates never modify |
 | `AGENTS.md` | Project entry point that directs agents to the generated guidance |
 
 An existing root `AGENTS.md` is never overwritten. If it already exists, add an
@@ -178,6 +202,33 @@ node /path/to/beez-agent-harness/bin/beez-harness.js init --preset nextjs
 - Record generated files and the applied Harness version in `manifest.json`.
 - Detect the package manager from lock files when using the Next.js preset.
 
+Preview initialization before writing:
+
+```bash
+npx beez-agent-harness init --preset nextjs --dry-run
+```
+
+## Runs and verification
+
+A run starts as `active` and ends as `completed`, `failed`, or `cancelled`.
+
+```bash
+npx beez-agent-harness run start
+npx beez-agent-harness run status
+npx beez-agent-harness verify --command test
+npx beez-agent-harness verify --required
+npx beez-agent-harness run finish
+```
+
+Completion is blocked when required verification is missing or failed, or when
+`project.json` changed after the run started. Inspect an interrupted run with
+`run resume`, and prune old terminal history explicitly:
+
+```bash
+npx beez-agent-harness run resume
+npx beez-agent-harness run gc --keep 20
+```
+
 ## Updates and diagnostics
 
 There are two independent update layers: the installed plugin or Skills, and
@@ -195,16 +246,20 @@ npx skills update
 
 ```bash
 npx beez-agent-harness@latest update --check
+npx beez-agent-harness@latest update --diff
 npx beez-agent-harness@latest update
 npx beez-agent-harness@latest doctor
+npx beez-agent-harness@latest doctor --json
 ```
 
 - `update --check` exits non-zero when it detects a newer version or managed-file
   drift.
+- `update --diff` previews managed-file changes without writing.
 - `update` refreshes only Harness-managed files.
 - `.harness/project.json` and an existing root `AGENTS.md` are never overwritten
   during an update.
 - `doctor` checks configuration, missing files, and managed-file drift.
+- `doctor --json` emits the same health result as machine-readable JSON.
 
 ## Development and contribution
 
@@ -214,6 +269,7 @@ Node.js 20 or newer is required.
 npm run check
 npm run validate
 npm test
+npm run evaluate
 npm pack --dry-run
 ```
 
@@ -223,9 +279,11 @@ Related documentation:
 
 - [Project configuration guide](docs/en/configuration.md)
 - [CLI reference](docs/en/cli-reference.md)
+- [Architecture](docs/en/architecture.md)
+- [Behavior evaluation](evals/README.en.md)
 - [Troubleshooting](docs/en/troubleshooting.md)
 - [Release guide](docs/en/releasing.md)
-- [v0.1 specification](SPEC.md)
+- [Project specification](SPEC.md)
 - [Contribution guide](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)

@@ -5,8 +5,8 @@
 Beez Agent Harness는 일관된 소프트웨어 개발을 위한 **Codex 중심의 재사용
 가능한 Agent Skill 모음과 경량 프로젝트 어댑터**입니다.
 
-작업을 명세, 계획, 점진적 구현, 검증, 리뷰 단계로 연결하면서도 프로젝트별
-명령어와 작업 경계는 각 저장소 안에서 직접 관리할 수 있습니다.
+작업을 명세, 계획, 점진적 구현, 검증, 리뷰 단계로 연결하고, 프로젝트별
+명령어와 작업 경계, 로컬 실행 증거를 각 저장소 안에서 관리합니다.
 
 ## 문서 안내
 
@@ -14,6 +14,7 @@ Beez Agent Harness는 일관된 소프트웨어 개발을 위한 **Codex 중심�
 - [핵심 개념](#핵심-개념): Skill과 프로젝트 어댑터의 역할
 - [설치 방법](#설치-방법): 전체 플러그인 또는 필요한 Skill만 설치
 - [프로젝트에 적용하기](#프로젝트에-적용하기): 프리셋과 프로젝트 설정
+- [실행과 검증](#실행과-검증): 작업 상태와 검증 증거 기록
 - [업데이트와 상태 점검](#업데이트와-상태-점검): 안전한 업데이트 및 진단
 - [개발 및 기여](#개발-및-기여): 저장소 개발 명령어와 관련 문서
 
@@ -54,6 +55,10 @@ npx beez-agent-harness init --preset nextjs
     "lint": "npm run lint",
     "build": "npm run build"
   },
+  "verification": {
+    "required": ["test", "lint", "build"],
+    "timeoutMs": 600000
+  },
   "boundaries": [
     "Do not commit secrets.",
     "Preserve unrelated user changes."
@@ -62,12 +67,24 @@ npx beez-agent-harness init --preset nextjs
 ```
 
 에이전트는 여기에 선언된 명령어와 작업 경계를 기준으로 프로젝트를 다룹니다.
+`verification.required`는 run을 완료하기 전에 통과해야 하는 명령어입니다.
+
+### 4. 실행과 검증 기록
+
+```bash
+npx beez-agent-harness run start
+npx beez-agent-harness verify --required
+npx beez-agent-harness run finish
+```
+
+명령어 출력은 현재 터미널에만 표시됩니다. run 기록에는 명령 이름과 해시,
+종료 코드, 실행 시간만 저장하며 원문 출력과 환경 변수는 저장하지 않습니다.
 
 ## 핵심 개념
 
 Beez Agent Harness는 에이전트 실행 엔진이나 프레임워크별 프로젝트 생성기가
-아닙니다. 기존 저장소에 다음 두 계층을 더해 개발 작업의 품질과 일관성을
-높이는 도구입니다.
+아닙니다. 기존 저장소에 Skill, 프로젝트 규칙, 로컬 실행 증거 계층을 더해
+개발 작업의 품질과 일관성을 높이는 도구입니다.
 
 ### Agent Skill
 
@@ -98,15 +115,20 @@ Beez Agent Harness는 에이전트 실행 엔진이나 프레임워크별 프로
 .harness/
 ├── manifest.json
 ├── project.json
-└── generated/
-    └── AGENTS.md
+├── generated/
+│   └── AGENTS.md
+└── runs/
+    └── <run-id>/
+        ├── manifest.json
+        └── events.jsonl
 ```
 
 | 파일 | 소유권과 용도 |
 | --- | --- |
 | `.harness/manifest.json` | Harness 버전과 관리 파일의 해시 기록 |
-| `.harness/project.json` | 프로젝트가 소유하는 명령어와 작업 경계 |
+| `.harness/project.json` | 프로젝트가 소유하는 명령어, 필수 검증과 작업 경계 |
 | `.harness/generated/AGENTS.md` | Harness가 생성하고 안전하게 갱신하는 안내 |
+| `.harness/runs/**` | CLI가 생성하고 패키지 업데이트가 수정하지 않는 실행 증거 |
 | `AGENTS.md` | 에이전트가 생성된 안내를 읽도록 연결하는 프로젝트 진입점 |
 
 기존 루트 `AGENTS.md`는 덮어쓰지 않습니다. 이미 파일이 있다면
@@ -172,6 +194,34 @@ node /path/to/beez-agent-harness/bin/beez-harness.js init --preset nextjs
 - 생성 파일과 적용된 Harness 버전을 `manifest.json`에 기록합니다.
 - Next.js 프리셋에서는 lock 파일을 기준으로 패키지 관리자를 감지합니다.
 
+파일을 쓰기 전에 결과를 확인할 수 있습니다.
+
+```bash
+npx beez-agent-harness init --preset nextjs --dry-run
+```
+
+## 실행과 검증
+
+run은 `active`로 시작해 `completed`, `failed`, `cancelled` 중 하나로
+종료됩니다.
+
+```bash
+npx beez-agent-harness run start
+npx beez-agent-harness run status
+npx beez-agent-harness verify --command test
+npx beez-agent-harness verify --required
+npx beez-agent-harness run finish
+```
+
+필수 검증이 누락되거나 실패했거나, run 시작 후 `project.json`이 바뀌면
+`completed` 전환이 차단됩니다. 중단된 작업은 `run resume`으로 다시
+확인하고, 오래된 종료 기록은 다음과 같이 정리합니다.
+
+```bash
+npx beez-agent-harness run resume
+npx beez-agent-harness run gc --keep 20
+```
+
 ## 업데이트와 상태 점검
 
 업데이트는 플러그인 또는 Skill과 프로젝트 어댑터의 두 단계로 나뉩니다.
@@ -188,16 +238,20 @@ npx skills update
 
 ```bash
 npx beez-agent-harness@latest update --check
+npx beez-agent-harness@latest update --diff
 npx beez-agent-harness@latest update
 npx beez-agent-harness@latest doctor
+npx beez-agent-harness@latest doctor --json
 ```
 
 - `update --check`는 새 버전이나 관리 파일 변경을 발견하면 0이 아닌 종료
   코드를 반환합니다.
+- `update --diff`는 관리 파일의 변경 내용을 쓰기 없이 보여줍니다.
 - `update`는 Harness 관리 파일만 갱신합니다.
 - `.harness/project.json`과 기존 루트 `AGENTS.md`는 갱신 과정에서도
   덮어쓰지 않습니다.
 - `doctor`는 설정 오류, 누락 파일, 관리 파일 변경 상태를 점검합니다.
+- `doctor --json`은 같은 결과를 자동화에 적합한 JSON으로 출력합니다.
 
 ## 개발 및 기여
 
@@ -207,6 +261,7 @@ Node.js 20 이상이 필요합니다.
 npm run check
 npm run validate
 npm test
+npm run evaluate
 npm pack --dry-run
 ```
 
@@ -216,9 +271,11 @@ npm pack --dry-run
 
 - [프로젝트 설정 가이드](docs/ko/configuration.md)
 - [CLI 명령어](docs/ko/cli-reference.md)
+- [아키텍처](docs/ko/architecture.md)
+- [행동 평가](evals/README.md)
 - [문제 해결](docs/ko/troubleshooting.md)
 - [릴리스 가이드](docs/ko/releasing.md)
-- [v0.1 명세](SPEC.md)
+- [프로젝트 명세](SPEC.md)
 - [기여 가이드](CONTRIBUTING.md)
 - [보안 정책](SECURITY.md)
 - [변경 이력](CHANGELOG.md)

@@ -22,7 +22,7 @@ npx beez-agent-harness update --check
 npx beez-agent-harness update
 ```
 
-프리셋을 바꾸려는 경우 Manifest를 직접 수정하지 마십시오. 현재 v0.1 CLI는
+프리셋을 바꾸려는 경우 Manifest를 직접 수정하지 마십시오. 현재 CLI는
 초기화 후 프리셋 변경 명령을 제공하지 않습니다.
 
 ## Manifest 또는 프로젝트 설정을 읽을 수 없음
@@ -95,6 +95,38 @@ npx beez-agent-harness@latest doctor
 `update --check`는 업데이트나 drift를 발견하면 의도적으로 종료 코드 `1`을
 반환합니다. 로그를 확인한 뒤 로컬에서 `update`를 실행하고 생성된 변경을
 검토해 반영합니다.
+
+## run을 완료할 수 없음
+
+```text
+Run cannot complete; required verification has not passed
+```
+
+`project.json`의 `verification.required`를 확인하고 active run에서 검증을
+실행합니다.
+
+```bash
+npx beez-agent-harness run status
+npx beez-agent-harness verify --required
+npx beez-agent-harness run finish
+```
+
+설정이 시작 후 바뀌었다는 오류가 나오면 현재 run을 `failed` 또는
+`cancelled`로 끝내고 새 run을 시작합니다. 이전 검증 결과를 새 설정의
+근거로 재사용하지 않습니다.
+
+## active run이 남아 있음
+
+프로세스 중단은 run을 자동 실패 처리하지 않습니다. 상태를 확인하고 이어서
+검증하거나 명시적으로 종료합니다.
+
+```bash
+npx beez-agent-harness run resume
+npx beez-agent-harness run finish --state cancelled
+```
+
+오래된 terminal 기록만 정리하려면 `run gc --keep <개수>`를 사용합니다.
+active run은 삭제되지 않습니다.
 
 ## 지원하지 않는 옵션
 

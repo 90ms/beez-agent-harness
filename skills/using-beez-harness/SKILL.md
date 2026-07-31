@@ -17,6 +17,11 @@ Route the request before changing files. Keep the workflow proportional to risk.
 Continue without the adapter when it is absent; the skills must also work
 standalone.
 
+When the Beez CLI is available for a software change, inspect the active run.
+Resume it when it matches the current task; otherwise start a run after any
+unrelated active run is explicitly finished. Do not create run state for an
+explanation-only request.
+
 ## Route the task
 
 Use the following smallest sufficient route:
@@ -51,6 +56,8 @@ missing capability only when it materially affects the result.
 - Do not hide failing checks or unrelated pre-existing failures.
 - Do not overwrite project-owned files with generated policy.
 - Commit only when the user or project guidance authorizes commits.
+- Run configured checks through `beez-harness verify` when an active run exists.
+- Finish a run as completed only after required verification passes.
 
 For an end-to-end build request, move through the route without asking for
 approval between routine phases. Pause only for a material product decision,
@@ -63,3 +70,5 @@ Lead with the outcome. Include:
 - what changed or was learned;
 - verification commands and results;
 - remaining risks, failures, or decisions.
+
+When run evidence was used, include its id and terminal state.
