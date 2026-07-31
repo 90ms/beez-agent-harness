@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test, { after } from "node:test";
@@ -135,6 +143,28 @@ test("detects drift and updates only managed files", async () => {
   assert.equal((await doctorProject({ cwd, packageRoot })).ok, true);
 });
 
+test("update checks preserve v0.2 project state and leave no temporary files", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const projectFile = path.join(cwd, ".harness/project.json");
+  const manifestFile = path.join(cwd, ".harness/manifest.json");
+  const projectBefore = await readFile(projectFile, "utf8");
+  const manifestBefore = await readFile(manifestFile, "utf8");
+
+  const result = await updateProject({ cwd, packageRoot, check: true });
+
+  assert.equal(result.changed, false);
+  assert.equal(await readFile(projectFile, "utf8"), projectBefore);
+  assert.equal(await readFile(manifestFile, "utf8"), manifestBefore);
+  const harnessFiles = await readdir(path.join(cwd, ".harness"), {
+    recursive: true,
+  });
+  assert.equal(
+    harnessFiles.some((file) => file.includes(`.tmp-${process.pid}`)),
+    false,
+  );
+});
+
 test("detects pnpm for the nextjs preset", async () => {
   const cwd = await temporaryProject();
   await writeFile(path.join(cwd, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
@@ -168,6 +198,50 @@ test("doctor rejects managed paths outside the generated directory", async () =>
   const manifestFile = path.join(cwd, ".harness/manifest.json");
   const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
   manifest.managedFiles["../../outside.txt"] = "a".repeat(64);
+  await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) =>
+      error.includes("must stay inside .harness/generated"),
+    ),
+  );
+});
+
+test("doctor and update reject a symlinked managed directory", async () => {
+  const cwd = await temporaryProject();
+  const outside = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const generatedDirectory = path.join(cwd, ".harness/generated");
+  await rm(generatedDirectory, { recursive: true });
+  await symlink(
+    outside,
+    generatedDirectory,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) => error.includes("must not use symbolic links")),
+  );
+  await assert.rejects(
+    updateProject({ cwd, packageRoot }),
+    /must not use symbolic links/,
+  );
+  await assert.rejects(readFile(path.join(outside, "AGENTS.md")));
+});
+
+test("doctor rejects normalized traversal inside the managed directory", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const manifestFile = path.join(cwd, ".harness/manifest.json");
+  const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
+  manifest.managedFiles[".harness/generated/nested/../../outside.txt"] =
+    "a".repeat(64);
   await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 
   const health = await doctorProject({ cwd, packageRoot });
