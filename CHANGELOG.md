@@ -12,6 +12,7 @@ Versioning.
 - Made the Korean guide the default README and added a linked English version.
 - Hardened runtime validation for manifests, managed paths, hashes, commands,
   and project boundaries.
+- Made `doctor` compare managed guidance with its canonical generated content.
 
 ## [0.1.0] - 2026-07-24
 

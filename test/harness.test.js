@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -182,6 +183,30 @@ test("doctor rejects malformed managed-file hashes", async () => {
   assert.ok(
     health.errors.some((error) =>
       error.includes("Managed file hash must be SHA-256"),
+    ),
+  );
+});
+
+test("doctor detects coordinated drift in guidance and its manifest hash", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const guidanceFile = path.join(cwd, ".harness/generated/AGENTS.md");
+  const manifestFile = path.join(cwd, ".harness/manifest.json");
+  const changedGuidance = `${await readFile(guidanceFile, "utf8")}\nlocal policy\n`;
+  await writeFile(guidanceFile, changedGuidance);
+
+  const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
+  manifest.managedFiles[".harness/generated/AGENTS.md"] = createHash("sha256")
+    .update(changedGuidance)
+    .digest("hex");
+  await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) =>
+      error.includes("differs from generated guidance"),
     ),
   );
 });
