@@ -22,6 +22,7 @@
     "templates/",
     "CHANGELOG.md",
     "LICENSE",
+    "README.en.md",
     "README.md",
     "SPEC.md"
   ],

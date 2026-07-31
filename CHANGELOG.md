@@ -7,6 +7,10 @@ Versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- Made the Korean guide the default README and added a linked English version.
+
 ## [0.1.0] - 2026-07-24
 
 ### Added
