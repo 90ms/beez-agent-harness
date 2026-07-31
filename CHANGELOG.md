@@ -10,6 +10,8 @@ Versioning.
 ### Changed
 
 - Made the Korean guide the default README and added a linked English version.
+- Hardened runtime validation for manifests, managed paths, hashes, commands,
+  and project boundaries.
 
 ## [0.1.0] - 2026-07-24
 

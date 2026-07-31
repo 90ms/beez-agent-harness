@@ -23,6 +23,10 @@
     },
     "managedFiles": {
       "type": "object",
+      "required": [".harness/generated/AGENTS.md"],
+      "propertyNames": {
+        "pattern": "^\\.harness/generated/(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      },
       "additionalProperties": {
         "type": "string",
         "pattern": "^[a-f0-9]{64}$"

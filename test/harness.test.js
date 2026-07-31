@@ -150,6 +150,86 @@ test("doctor reports invalid manifests without throwing", async () => {
   assert.ok(health.errors.some((error) => error.includes("schemaVersion")));
 });
 
+test("doctor rejects managed paths outside the generated directory", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const manifestFile = path.join(cwd, ".harness/manifest.json");
+  const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
+  manifest.managedFiles["../../outside.txt"] = "a".repeat(64);
+  await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) =>
+      error.includes("must stay inside .harness/generated"),
+    ),
+  );
+});
+
+test("doctor rejects malformed managed-file hashes", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const manifestFile = path.join(cwd, ".harness/manifest.json");
+  const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
+  manifest.managedFiles[".harness/generated/AGENTS.md"] = "not-a-sha256";
+  await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) =>
+      error.includes("Managed file hash must be SHA-256"),
+    ),
+  );
+});
+
+test("doctor rejects non-string project commands", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: ["npm", "test"] },
+      boundaries: ["Keep user changes."],
+    })}\n`,
+  );
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) =>
+      error.includes("Project command must be a string"),
+    ),
+  );
+});
+
+test("doctor rejects non-string project boundaries", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: "npm test" },
+      boundaries: ["Keep user changes.", 42],
+    })}\n`,
+  );
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) =>
+      error.includes("Project boundaries must contain only strings"),
+    ),
+  );
+});
+
 test("CLI update --check exits non-zero when managed guidance has drifted", async () => {
   const cwd = await temporaryProject();
   const initialization = await runCli(cwd, ["init", "--preset", "base"]);
