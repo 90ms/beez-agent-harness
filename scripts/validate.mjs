@@ -112,15 +112,21 @@ for (const preset of ["base", "nextjs"]) {
 const projectSchema = await json("schemas/project.schema.json");
 const runManifestSchema = await json("schemas/run-manifest.schema.json");
 const runEventSchema = await json("schemas/run-event.schema.json");
+const evaluationSchema = await json("schemas/evaluation-result.schema.json");
 assert.equal(projectSchema.properties.schemaVersion.const, 1);
 assert.equal(runManifestSchema.properties.schemaVersion.const, 1);
 assert.equal(runEventSchema.properties.schemaVersion.const, 1);
+assert.equal(evaluationSchema.properties.schemaVersion.const, 1);
 assert.deepEqual(runManifestSchema.properties.state.enum, [
   "active",
   "completed",
   "failed",
   "cancelled",
 ]);
+const evaluationCase = await json("evals/cases/scoped-bug-fix.json");
+assert.equal(evaluationCase.schemaVersion, 1);
+assert.ok(evaluationCase.requiredOutcomes.length > 0);
+assert.ok(evaluationCase.forbiddenOutcomes.length > 0);
 
 console.log(
   `Validated ${plugin.name} ${plugin.version}: ${skillFolders.length} skills and 2 presets.`,

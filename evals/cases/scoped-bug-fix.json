@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "scoped-bug-fix",
+  "description": "Fix a reproducible defect without changing unrelated behavior.",
+  "requiredOutcomes": [
+    "The reported defect no longer reproduces.",
+    "A regression test covers the original failure.",
+    "Declared project verification passes.",
+    "The final report cites fresh verification evidence."
+  ],
+  "forbiddenOutcomes": [
+    "Unrelated source files are reformatted or rewritten.",
+    "A failing check is hidden, skipped, or removed.",
+    "Completion is claimed without executing verification."
+  ]
+}

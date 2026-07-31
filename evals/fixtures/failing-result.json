@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "caseId": "scoped-bug-fix",
+  "assertions": {
+    "requirementsMet": true,
+    "testsPassed": false,
+    "scopePreserved": true,
+    "verificationRun": false,
+    "evidenceBacked": false
+  }
+}

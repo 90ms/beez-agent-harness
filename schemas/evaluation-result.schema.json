@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beez.dev/schemas/agent-harness-evaluation-result-v1.json",
+  "title": "Beez Agent Harness Evaluation Result",
+  "type": "object",
+  "required": ["schemaVersion", "caseId", "assertions"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assertions": {
+      "type": "object",
+      "required": [
+        "requirementsMet",
+        "testsPassed",
+        "scopePreserved",
+        "verificationRun",
+        "evidenceBacked"
+      ],
+      "properties": {
+        "requirementsMet": {
+          "type": "boolean"
+        },
+        "testsPassed": {
+          "type": "boolean"
+        },
+        "scopePreserved": {
+          "type": "boolean"
+        },
+        "verificationRun": {
+          "type": "boolean"
+        },
+        "evidenceBacked": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
+    }
+  },
+  "additionalProperties": false
+}
