@@ -11,7 +11,8 @@ async function json(relativePath) {
 }
 
 function frontmatter(source, file) {
-  const match = source.match(/^---\n([\s\S]*?)\n---\n/);
+  const normalized = source.replaceAll("\r\n", "\n");
+  const match = normalized.match(/^---\n([\s\S]*?)\n---\n/);
   assert.ok(match, `${file} must begin with YAML frontmatter`);
   const entries = Object.fromEntries(
     match[1].split("\n").map((line) => {
@@ -27,6 +28,17 @@ function frontmatter(source, file) {
   );
   return entries;
 }
+
+assert.deepEqual(
+  frontmatter(
+    "---\r\nname: crlf-example\r\ndescription: Windows line ending fixture\r\n---\r\n",
+    "CRLF fixture",
+  ),
+  {
+    name: "crlf-example",
+    description: "Windows line ending fixture",
+  },
+);
 
 const packageJson = await json("package.json");
 const plugin = await json(".codex-plugin/plugin.json");
