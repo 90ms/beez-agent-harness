@@ -7,6 +7,35 @@ Versioning.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-31
+
+### Added
+
+- Local run lifecycle commands with atomic manifests, append-only events,
+  repository identity, configuration digests, resume, and terminal-run cleanup.
+- Explicit project verification with required-command completion gates,
+  per-command timeouts, and result metadata that excludes raw output.
+- `doctor --json`, `init --dry-run`, and `update --diff`.
+- Backward-compatible project verification configuration and run, event, and
+  evaluation JSON schemas.
+- Provider-neutral behavior evaluation fixtures and a deterministic scorer.
+- Windows CI coverage alongside the Node.js 20, 22, and 24 Linux matrix.
+
+### Changed
+
+- Updated Korean and English guides, architecture, troubleshooting, Agent
+  guidance, and the living specification for v0.3.
+- Extended the Next.js preset with required test, lint, and build verification.
+
+### Security
+
+- Reject symlinked Harness paths before initialization, diagnosis, or managed
+  updates can cross the project boundary.
+- Store command digests and result metadata instead of command text,
+  environment values, or raw stdout and stderr.
+- Reject successful completion when required evidence is missing, stale,
+  failed, timed out, or produced for changed project configuration.
+
 ## [0.2.0] - 2026-07-31
 
 ### Added

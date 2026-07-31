@@ -1,6 +1,6 @@
 {
   "name": "beez-agent-harness",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Codex-first Agent Skills and a project adapter for evidence-driven software delivery.",
   "type": "module",
   "bin": {

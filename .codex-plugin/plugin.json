@@ -1,6 +1,6 @@
 {
   "name": "beez-agent-harness",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Reusable engineering workflows and project adapters for Codex.",
   "author": {
     "name": "Beez",
@@ -14,7 +14,7 @@
   "interface": {
     "displayName": "Beez Agent Harness",
     "shortDescription": "Reusable, evidence-driven engineering workflows.",
-    "longDescription": "Route software work through specification, planning, incremental implementation, verification, and review workflows.",
+    "longDescription": "Route software work through specification, planning, incremental implementation, verification, review, and local evidence workflows.",
     "developerName": "Beez",
     "category": "Productivity",
     "capabilities": ["Write"],
