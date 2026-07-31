@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const releaseTag = process.argv[2] ?? process.env.GITHUB_REF_NAME;
 
-assert.ok(releaseTag, "Release tag is required (for example: v0.1.0)");
+assert.ok(releaseTag, "Release tag is required (for example: vX.Y.Z)");
 
 async function json(relativePath) {
   return JSON.parse(await readFile(path.join(root, relativePath), "utf8"));

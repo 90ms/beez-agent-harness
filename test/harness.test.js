@@ -13,6 +13,9 @@ import {
 } from "../lib/harness.js";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
+const packageVersion = JSON.parse(
+  await readFile(path.join(packageRoot, "package.json"), "utf8"),
+).version;
 const cliPath = path.join(packageRoot, "bin/beez-harness.js");
 const releaseCheckPath = path.join(packageRoot, "scripts/check-release.mjs");
 const temporaryProjects = new Set();
@@ -56,7 +59,10 @@ test("initializes the base preset and passes doctor", async () => {
   const cwd = await temporaryProject();
   const result = await initProject({ cwd, packageRoot, preset: "base" });
 
-  assert.match(result.messages[0], /Initialized Beez Agent Harness 0\.1\.0/);
+  assert.match(
+    result.messages[0],
+    new RegExp(`Initialized Beez Agent Harness ${packageVersion}`),
+  );
   const manifest = JSON.parse(
     await readFile(path.join(cwd, ".harness/manifest.json"), "utf8"),
   );
@@ -338,15 +344,16 @@ test("CLI supports the conventional --version alias", async () => {
   const result = await runCli(cwd, ["--version"]);
 
   assert.equal(result.code, 0);
-  assert.equal(result.stdout.trim(), "0.1.0");
+  assert.equal(result.stdout.trim(), packageVersion);
   assert.equal(result.stderr, "");
 });
 
 test("release check accepts the tag matching all repository versions", async () => {
-  const result = await runNodeScript(packageRoot, releaseCheckPath, ["v0.1.0"]);
+  const releaseTag = `v${packageVersion}`;
+  const result = await runNodeScript(packageRoot, releaseCheckPath, [releaseTag]);
 
   assert.equal(result.code, 0);
-  assert.match(result.stdout, /Release v0\.1\.0 is internally consistent/);
+  assert.match(result.stdout, new RegExp(`Release ${releaseTag}`));
   assert.equal(result.stderr, "");
 });
 
@@ -354,5 +361,8 @@ test("release check rejects a tag that differs from the package version", async 
   const result = await runNodeScript(packageRoot, releaseCheckPath, ["v9.9.9"]);
 
   assert.equal(result.code, 1);
-  assert.match(result.stderr, /must match package version 0\.1\.0/);
+  assert.match(
+    result.stderr,
+    new RegExp(`must match package version ${packageVersion}`),
+  );
 });

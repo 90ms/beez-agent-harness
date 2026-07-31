@@ -7,16 +7,21 @@ Versioning.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-31
+
+### Added
+
+- Strict command option validation, command-specific help,
+  `--preset=<name>`, and `--version` support.
+- Bilingual configuration, CLI reference, troubleshooting, and release guides.
+- A verified, OIDC-based npm and GitHub release workflow.
+
 ### Changed
 
 - Made the Korean guide the default README and added a linked English version.
 - Hardened runtime validation for manifests, managed paths, hashes, commands,
   and project boundaries.
 - Made `doctor` compare managed guidance with its canonical generated content.
-- Added strict command option validation, command-specific help,
-  `--preset=<name>`, and `--version` support.
-- Added bilingual configuration, CLI reference, and troubleshooting guides.
-- Added a verified, OIDC-based npm and GitHub release workflow.
 
 ## [0.1.0] - 2026-07-24
 
