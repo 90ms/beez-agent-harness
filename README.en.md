@@ -221,6 +221,9 @@ This repository applies its own project adapter.
 
 Related documentation:
 
+- [Project configuration guide](docs/en/configuration.md)
+- [CLI reference](docs/en/cli-reference.md)
+- [Troubleshooting](docs/en/troubleshooting.md)
 - [v0.1 specification](SPEC.md)
 - [Contribution guide](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

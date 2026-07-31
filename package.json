@@ -15,6 +15,7 @@
     ".agents/",
     ".codex-plugin/",
     "bin/",
+    "docs/",
     "lib/",
     "presets/",
     "schemas/",

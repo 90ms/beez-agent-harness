@@ -15,6 +15,7 @@ Versioning.
 - Made `doctor` compare managed guidance with its canonical generated content.
 - Added strict command option validation, command-specific help,
   `--preset=<name>`, and `--version` support.
+- Added bilingual configuration, CLI reference, and troubleshooting guides.
 
 ## [0.1.0] - 2026-07-24
 
