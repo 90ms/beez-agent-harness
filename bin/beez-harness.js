@@ -22,9 +22,10 @@ Options:
   --preset <name>  Project preset (default: base)
   -h, --help       Show this help`,
     doctor: `Usage:
-  beez-harness doctor
+  beez-harness doctor [--json]
 
 Options:
+  --json     Print a machine-readable health report
   -h, --help  Show this help`,
     update: `Usage:
   beez-harness update [--check]
@@ -106,6 +107,22 @@ function parseUpdateArgs(args) {
   return { check, help: false };
 }
 
+function parseDoctorArgs(args) {
+  let json = false;
+  for (const argument of args) {
+    if (HELP_FLAGS.has(argument)) {
+      if (args.length !== 1) argumentError("doctor", argument);
+      return { help: true, json };
+    }
+    if (argument !== "--json") argumentError("doctor", argument);
+    if (json) {
+      throw new Error(`--json may only be specified once\n\n${usage("doctor")}`);
+    }
+    json = true;
+  }
+  return { help: false, json };
+}
+
 function parseFlaglessArgs(command, args) {
   if (args.length === 0) return { help: false };
   if (args.length === 1 && HELP_FLAGS.has(args[0])) return { help: true };
@@ -139,19 +156,22 @@ async function main() {
       break;
     }
     case "doctor": {
-      const { help } = parseFlaglessArgs("doctor", args);
+      const { help, json } = parseDoctorArgs(args);
       if (help) {
         console.log(usage("doctor"));
         break;
       }
       const result = await doctorProject({ cwd, packageRoot });
-      for (const warning of result.warnings) console.warn(`warning: ${warning}`);
-      for (const error of result.errors) console.error(`error: ${error}`);
-      if (result.ok) {
-        console.log("Beez Agent Harness project state is healthy.");
+      if (json) {
+        console.log(JSON.stringify(result, null, 2));
       } else {
-        process.exitCode = 1;
+        for (const warning of result.warnings) console.warn(`warning: ${warning}`);
+        for (const error of result.errors) console.error(`error: ${error}`);
+        if (result.ok) {
+          console.log("Beez Agent Harness project state is healthy.");
+        }
       }
+      if (!result.ok) process.exitCode = 1;
       break;
     }
     case "update": {

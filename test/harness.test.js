@@ -369,6 +369,53 @@ test("CLI doctor reports a missing managed file on stderr", async () => {
   assert.equal(result.stdout, "");
 });
 
+test("CLI doctor emits a stable JSON health report", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "nextjs" });
+
+  const result = await runCli(cwd, ["doctor", "--json"]);
+
+  assert.equal(result.code, 0);
+  assert.equal(result.stderr, "");
+  assert.deepEqual(JSON.parse(result.stdout), {
+    schemaVersion: 1,
+    ok: true,
+    harness: {
+      installedVersion: packageVersion,
+      availableVersion: packageVersion,
+      preset: "nextjs",
+    },
+    errors: [],
+    warnings: [],
+  });
+});
+
+test("CLI doctor JSON preserves unhealthy exit status and diagnostics", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await rm(path.join(cwd, ".harness/generated/AGENTS.md"));
+
+  const result = await runCli(cwd, ["doctor", "--json"]);
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.code, 1);
+  assert.equal(result.stderr, "");
+  assert.equal(report.ok, false);
+  assert.ok(
+    report.errors.some((error) => error.includes("Managed file is missing")),
+  );
+});
+
+test("CLI doctor rejects a duplicate JSON option", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["doctor", "--json", "--json"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /--json may only be specified once/);
+  assert.equal(result.stdout, "");
+});
+
 test("CLI rejects initialization when the harness is already initialized", async () => {
   const cwd = await temporaryProject();
   const first = await runCli(cwd, ["init"]);
