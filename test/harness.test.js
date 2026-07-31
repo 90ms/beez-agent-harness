@@ -439,6 +439,55 @@ test("CLI supports equals syntax for preset selection", async () => {
   assert.equal(project.commands.build, "npm run build");
 });
 
+test("CLI previews initialization without writing files", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, [
+    "init",
+    "--preset",
+    "nextjs",
+    "--dry-run",
+  ]);
+
+  assert.equal(result.code, 0);
+  assert.equal(result.stderr, "");
+  assert.match(result.stdout, /Would initialize Beez Agent Harness/);
+  assert.match(result.stdout, /Would create \.harness\/project\.json/);
+  assert.match(result.stdout, /Would create AGENTS\.md project entry point/);
+  assert.deepEqual(await readdir(cwd), []);
+});
+
+test("CLI dry-run reports existing project files as preserved", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"));
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    '{"project":"owned"}\n',
+  );
+  await writeFile(path.join(cwd, "AGENTS.md"), "# Existing\n");
+  const filesBefore = await readdir(cwd, { recursive: true });
+
+  const result = await runCli(cwd, ["init", "--dry-run"]);
+
+  assert.equal(result.code, 0);
+  assert.match(
+    result.stdout,
+    /Would preserve existing \.harness\/project\.json/,
+  );
+  assert.match(result.stdout, /Would preserve existing AGENTS\.md/);
+  assert.deepEqual(await readdir(cwd, { recursive: true }), filesBefore);
+});
+
+test("CLI rejects a duplicate dry-run option", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["init", "--dry-run", "--dry-run"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /--dry-run may only be specified once/);
+  assert.deepEqual(await readdir(cwd), []);
+});
+
 test("CLI rejects unknown command options", async () => {
   const cwd = await temporaryProject();
 

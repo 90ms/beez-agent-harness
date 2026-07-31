@@ -16,10 +16,11 @@ const HELP_FLAGS = new Set(["--help", "-h"]);
 function usage(command) {
   const commands = {
     init: `Usage:
-  beez-harness init [--preset base|nextjs]
+  beez-harness init [--preset base|nextjs] [--dry-run]
 
 Options:
   --preset <name>  Project preset (default: base)
+  --dry-run        Preview initialization without writing
   -h, --help       Show this help`,
     doctor: `Usage:
   beez-harness doctor [--json]
@@ -57,12 +58,13 @@ function argumentError(command, argument) {
 function parseInitArgs(args) {
   let preset = "base";
   let presetProvided = false;
+  let dryRun = false;
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (HELP_FLAGS.has(argument)) {
       if (args.length !== 1) argumentError("init", argument);
-      return { help: true, preset };
+      return { dryRun, help: true, preset };
     }
 
     let value;
@@ -77,6 +79,14 @@ function parseInitArgs(args) {
       if (!value) {
         throw new Error(`--preset requires a value\n\n${usage("init")}`);
       }
+    } else if (argument === "--dry-run") {
+      if (dryRun) {
+        throw new Error(
+          `--dry-run may only be specified once\n\n${usage("init")}`,
+        );
+      }
+      dryRun = true;
+      continue;
     } else {
       argumentError("init", argument);
     }
@@ -88,7 +98,7 @@ function parseInitArgs(args) {
     preset = value;
   }
 
-  return { help: false, preset };
+  return { dryRun, help: false, preset };
 }
 
 function parseUpdateArgs(args) {
@@ -146,12 +156,17 @@ async function main() {
 
   switch (command) {
     case "init": {
-      const { help, preset } = parseInitArgs(args);
+      const { dryRun, help, preset } = parseInitArgs(args);
       if (help) {
         console.log(usage("init"));
         break;
       }
-      const result = await initProject({ cwd, packageRoot, preset });
+      const result = await initProject({
+        cwd,
+        packageRoot,
+        preset,
+        dryRun,
+      });
       for (const message of result.messages) console.log(message);
       break;
     }
