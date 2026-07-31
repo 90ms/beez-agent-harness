@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import test, { after } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   doctorProject,
@@ -11,10 +12,39 @@ import {
 } from "../lib/harness.js";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
+const cliPath = path.join(packageRoot, "bin/beez-harness.js");
+const temporaryProjects = new Set();
 
 async function temporaryProject() {
-  return mkdtemp(path.join(os.tmpdir(), "beez-harness-test-"));
+  const project = await mkdtemp(path.join(os.tmpdir(), "beez-harness-test-"));
+  temporaryProjects.add(project);
+  return project;
 }
+
+function runCli(cwd, args) {
+  return new Promise((resolve) => {
+    execFile(
+      process.execPath,
+      [cliPath, ...args],
+      { cwd },
+      (error, stdout, stderr) => {
+        resolve({
+          code: error ? Number(error.code) || 1 : 0,
+          stdout,
+          stderr,
+        });
+      },
+    );
+  });
+}
+
+after(async () => {
+  await Promise.all(
+    [...temporaryProjects].map((project) =>
+      rm(project, { recursive: true, force: true }),
+    ),
+  );
+});
 
 test("initializes the base preset and passes doctor", async () => {
   const cwd = await temporaryProject();
@@ -118,4 +148,44 @@ test("doctor reports invalid manifests without throwing", async () => {
 
   assert.equal(health.ok, false);
   assert.ok(health.errors.some((error) => error.includes("schemaVersion")));
+});
+
+test("CLI update --check exits non-zero when managed guidance has drifted", async () => {
+  const cwd = await temporaryProject();
+  const initialization = await runCli(cwd, ["init", "--preset", "base"]);
+  assert.equal(initialization.code, 0);
+
+  await writeFile(
+    path.join(cwd, ".harness/generated/AGENTS.md"),
+    "local drift\n",
+  );
+
+  const check = await runCli(cwd, ["update", "--check"]);
+
+  assert.equal(check.code, 1);
+  assert.match(check.stdout, /managed-file drift detected/);
+  assert.equal(check.stderr, "");
+});
+
+test("CLI doctor reports a missing managed file on stderr", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await rm(path.join(cwd, ".harness/generated/AGENTS.md"));
+
+  const result = await runCli(cwd, ["doctor"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Managed file is missing/);
+  assert.equal(result.stdout, "");
+});
+
+test("CLI rejects initialization when the harness is already initialized", async () => {
+  const cwd = await temporaryProject();
+  const first = await runCli(cwd, ["init"]);
+  assert.equal(first.code, 0);
+
+  const second = await runCli(cwd, ["init"]);
+
+  assert.equal(second.code, 1);
+  assert.match(second.stderr, /Harness is already initialized/);
 });
