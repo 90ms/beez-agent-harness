@@ -340,6 +340,94 @@ test("doctor rejects non-string project boundaries", async () => {
   );
 });
 
+test("doctor accepts v0.2 project configuration without verification", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: "npm test" },
+      boundaries: ["Keep user changes."],
+    })}\n`,
+  );
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, true);
+});
+
+test("doctor accepts valid verification configuration", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: "npm test" },
+      verification: { required: ["test"], timeoutMs: 30_000 },
+      boundaries: ["Keep user changes."],
+    })}\n`,
+  );
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, true);
+});
+
+test("doctor rejects unknown and duplicate verification commands", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const projectFile = path.join(cwd, ".harness/project.json");
+  const project = {
+    schemaVersion: 1,
+    commands: { test: "npm test" },
+    verification: { required: ["missing"], timeoutMs: 30_000 },
+    boundaries: ["Keep user changes."],
+  };
+  await writeFile(projectFile, `${JSON.stringify(project)}\n`);
+
+  const unknownHealth = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(unknownHealth.ok, false);
+  assert.ok(
+    unknownHealth.errors.some((error) =>
+      error.includes("references an unknown command"),
+    ),
+  );
+
+  project.verification.required = ["test", "test"];
+  await writeFile(projectFile, `${JSON.stringify(project)}\n`);
+  const duplicateHealth = await doctorProject({ cwd, packageRoot });
+  assert.equal(duplicateHealth.ok, false);
+  assert.ok(
+    duplicateHealth.errors.some((error) =>
+      error.includes("must not contain duplicates"),
+    ),
+  );
+});
+
+test("doctor rejects verification timeouts outside the supported range", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: "npm test" },
+      verification: { required: ["test"], timeoutMs: 999 },
+      boundaries: ["Keep user changes."],
+    })}\n`,
+  );
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) => error.includes("timeoutMs must be an integer")),
+  );
+});
+
 test("CLI update --check exits non-zero when managed guidance has drifted", async () => {
   const cwd = await temporaryProject();
   const initialization = await runCli(cwd, ["init", "--preset", "base"]);

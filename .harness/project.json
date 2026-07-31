@@ -5,6 +5,10 @@
     "check": "npm run check",
     "validate": "npm run validate"
   },
+  "verification": {
+    "required": ["test", "check", "validate"],
+    "timeoutMs": 300000
+  },
   "boundaries": [
     "Do not commit secrets or machine-specific configuration.",
     "Preserve unrelated user changes.",

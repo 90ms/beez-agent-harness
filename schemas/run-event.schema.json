@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beez.dev/schemas/agent-harness-run-event-v1.json",
+  "title": "Beez Agent Harness Run Event",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "runId",
+    "sequence",
+    "type",
+    "timestamp",
+    "data"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "type": {
+      "enum": [
+        "run.started",
+        "run.resumed",
+        "run.completed",
+        "run.failed",
+        "run.cancelled",
+        "verification.started",
+        "verification.finished"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

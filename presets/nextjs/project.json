@@ -6,6 +6,10 @@
     "lint": "{{packageManager}} run lint",
     "build": "{{packageManager}} run build"
   },
+  "verification": {
+    "required": ["test", "lint", "build"],
+    "timeoutMs": 600000
+  },
   "boundaries": [
     "Do not expose server secrets through NEXT_PUBLIC_ variables.",
     "Preserve unrelated user changes.",

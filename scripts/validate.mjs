@@ -100,8 +100,27 @@ for (const preset of ["base", "nextjs"]) {
   const project = await json(`presets/${preset}/project.json`);
   assert.equal(project.schemaVersion, 1);
   assert.ok(project.commands && !Array.isArray(project.commands));
+  assert.ok(project.verification && !Array.isArray(project.verification));
+  assert.ok(Array.isArray(project.verification.required));
+  assert.ok(
+    project.verification.required.every((command) => command in project.commands),
+  );
+  assert.ok(Number.isInteger(project.verification.timeoutMs));
   assert.ok(Array.isArray(project.boundaries));
 }
+
+const projectSchema = await json("schemas/project.schema.json");
+const runManifestSchema = await json("schemas/run-manifest.schema.json");
+const runEventSchema = await json("schemas/run-event.schema.json");
+assert.equal(projectSchema.properties.schemaVersion.const, 1);
+assert.equal(runManifestSchema.properties.schemaVersion.const, 1);
+assert.equal(runEventSchema.properties.schemaVersion.const, 1);
+assert.deepEqual(runManifestSchema.properties.state.enum, [
+  "active",
+  "completed",
+  "failed",
+  "cancelled",
+]);
 
 console.log(
   `Validated ${plugin.name} ${plugin.version}: ${skillFolders.length} skills and 2 presets.`,

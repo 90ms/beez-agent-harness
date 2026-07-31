@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "commands": {},
+  "verification": {
+    "required": [],
+    "timeoutMs": 300000
+  },
   "boundaries": [
     "Do not commit secrets or machine-specific configuration.",
     "Preserve unrelated user changes.",

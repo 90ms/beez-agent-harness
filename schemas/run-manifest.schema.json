@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beez.dev/schemas/agent-harness-run-manifest-v1.json",
+  "title": "Beez Agent Harness Run Manifest",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "harnessVersion",
+    "state",
+    "configDigest",
+    "repository",
+    "verification",
+    "createdAt",
+    "updatedAt",
+    "finishedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "harnessVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "enum": ["active", "completed", "failed", "cancelled"]
+    },
+    "configDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repository": {
+      "type": "object",
+      "required": ["gitSha", "dirty"],
+      "properties": {
+        "gitSha": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{40,64}$"
+        },
+        "dirty": {
+          "type": ["boolean", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["required", "results"],
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "results": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/verificationResult"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finishedAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "verificationResult": {
+      "type": "object",
+      "required": [
+        "command",
+        "commandDigest",
+        "status",
+        "startedAt",
+        "finishedAt",
+        "durationMs",
+        "exitCode",
+        "signal"
+      ],
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commandDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "enum": ["passed", "failed", "timed_out", "interrupted"]
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exitCode": {
+          "type": ["integer", "null"]
+        },
+        "signal": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
