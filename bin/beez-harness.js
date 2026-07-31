@@ -29,10 +29,11 @@ Options:
   --json     Print a machine-readable health report
   -h, --help  Show this help`,
     update: `Usage:
-  beez-harness update [--check]
+  beez-harness update [--check] [--diff]
 
 Options:
   --check     Report available updates or drift without writing
+  --diff      Preview managed-file changes without writing
   -h, --help  Show this help`,
     version: `Usage:
   beez-harness version`,
@@ -103,18 +104,31 @@ function parseInitArgs(args) {
 
 function parseUpdateArgs(args) {
   let check = false;
+  let diff = false;
   for (const argument of args) {
     if (HELP_FLAGS.has(argument)) {
       if (args.length !== 1) argumentError("update", argument);
-      return { check, help: true };
+      return { check, diff, help: true };
     }
-    if (argument !== "--check") argumentError("update", argument);
-    if (check) {
-      throw new Error(`--check may only be specified once\n\n${usage("update")}`);
+    if (argument === "--check") {
+      if (check) {
+        throw new Error(
+          `--check may only be specified once\n\n${usage("update")}`,
+        );
+      }
+      check = true;
+    } else if (argument === "--diff") {
+      if (diff) {
+        throw new Error(
+          `--diff may only be specified once\n\n${usage("update")}`,
+        );
+      }
+      diff = true;
+    } else {
+      argumentError("update", argument);
     }
-    check = true;
   }
-  return { check, help: false };
+  return { check, diff, help: false };
 }
 
 function parseDoctorArgs(args) {
@@ -190,13 +204,14 @@ async function main() {
       break;
     }
     case "update": {
-      const { check, help } = parseUpdateArgs(args);
+      const { check, diff, help } = parseUpdateArgs(args);
       if (help) {
         console.log(usage("update"));
         break;
       }
-      const result = await updateProject({ cwd, packageRoot, check });
+      const result = await updateProject({ cwd, packageRoot, check, diff });
       console.log(result.message);
+      if (result.diff) console.log(result.diff);
       if (check && result.changed) process.exitCode = 1;
       break;
     }

@@ -357,6 +357,48 @@ test("CLI update --check exits non-zero when managed guidance has drifted", asyn
   assert.equal(check.stderr, "");
 });
 
+test("CLI update --diff previews managed changes without writing", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const generatedFile = path.join(cwd, ".harness/generated/AGENTS.md");
+  const manifestFile = path.join(cwd, ".harness/manifest.json");
+  await writeFile(generatedFile, "local drift\n");
+  const manifestBefore = await readFile(manifestFile, "utf8");
+
+  const result = await runCli(cwd, ["update", "--diff"]);
+
+  assert.equal(result.code, 0);
+  assert.equal(result.stderr, "");
+  assert.match(result.stdout, /--- a\/\.harness\/generated\/AGENTS\.md/);
+  assert.match(result.stdout, /\+\+\+ b\/\.harness\/generated\/AGENTS\.md/);
+  assert.match(result.stdout, /-local drift/);
+  assert.match(result.stdout, /\+# Beez Agent Harness/);
+  assert.equal(await readFile(generatedFile, "utf8"), "local drift\n");
+  assert.equal(await readFile(manifestFile, "utf8"), manifestBefore);
+});
+
+test("CLI update combines diff preview with check exit semantics", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const generatedFile = path.join(cwd, ".harness/generated/AGENTS.md");
+  await writeFile(generatedFile, "local drift\n");
+
+  const result = await runCli(cwd, ["update", "--diff", "--check"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stdout, /-local drift/);
+  assert.equal(await readFile(generatedFile, "utf8"), "local drift\n");
+});
+
+test("CLI update rejects a duplicate diff option", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["update", "--diff", "--diff"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /--diff may only be specified once/);
+});
+
 test("CLI doctor reports a missing managed file on stderr", async () => {
   const cwd = await temporaryProject();
   await initProject({ cwd, packageRoot, preset: "base" });
