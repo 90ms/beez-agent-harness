@@ -407,6 +407,29 @@ test("doctor rejects unknown and duplicate verification commands", async () => {
   );
 });
 
+test("doctor does not treat inherited command properties as configured", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: {},
+      verification: { required: ["toString"], timeoutMs: 30_000 },
+      boundaries: [],
+    })}\n`,
+  );
+
+  const health = await doctorProject({ cwd, packageRoot });
+
+  assert.equal(health.ok, false);
+  assert.ok(
+    health.errors.some((error) =>
+      error.includes("references an unknown command: toString"),
+    ),
+  );
+});
+
 test("doctor rejects verification timeouts outside the supported range", async () => {
   const cwd = await temporaryProject();
   await initProject({ cwd, packageRoot, preset: "base" });

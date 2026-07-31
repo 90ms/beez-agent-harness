@@ -338,6 +338,7 @@ test("resumes an interrupted active run without changing its state", async () =>
     .map((line) => JSON.parse(line));
 
   assert.equal(resumed.state, "active");
+  assert.ok(resumed.updatedAt >= active.updatedAt);
   assert.deepEqual(
     events.map((event) => event.type),
     ["run.started", "run.resumed"],
@@ -345,6 +346,26 @@ test("resumes an interrupted active run without changing its state", async () =>
   assert.deepEqual(
     events.map((event) => event.sequence),
     [1, 2],
+  );
+});
+
+test("rejects run manifest fields outside the published schema", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const active = await startRun({ cwd, packageRoot });
+  const manifestFile = path.join(
+    cwd,
+    ".harness/runs",
+    active.id,
+    "manifest.json",
+  );
+  const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
+  manifest.unexpected = true;
+  await writeFile(manifestFile, `${JSON.stringify(manifest)}\n`);
+
+  await assert.rejects(
+    readRun(cwd, active.id),
+    /Run manifest contains unsupported field: unexpected/,
   );
 });
 

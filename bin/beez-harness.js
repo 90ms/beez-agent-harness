@@ -254,6 +254,11 @@ function parseRunArgs(args) {
         );
       }
       keep = Number(value);
+      if (!Number.isSafeInteger(keep)) {
+        throw new Error(
+          `--keep must be a non-negative safe integer\n\n${usage("run")}`,
+        );
+      }
       keepProvided = true;
       index += 1;
     } else {
