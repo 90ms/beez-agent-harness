@@ -109,4 +109,3 @@ npx beez-agent-harness doctor
 
 `doctor` checks required fields, command and boundary types, managed paths and
 hashes, generated guidance, and the Harness version.
-

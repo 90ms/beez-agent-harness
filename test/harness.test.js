@@ -14,6 +14,7 @@ import {
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 const cliPath = path.join(packageRoot, "bin/beez-harness.js");
+const releaseCheckPath = path.join(packageRoot, "scripts/check-release.mjs");
 const temporaryProjects = new Set();
 
 async function temporaryProject() {
@@ -22,11 +23,11 @@ async function temporaryProject() {
   return project;
 }
 
-function runCli(cwd, args) {
+function runNodeScript(cwd, scriptPath, args) {
   return new Promise((resolve) => {
     execFile(
       process.execPath,
-      [cliPath, ...args],
+      [scriptPath, ...args],
       { cwd },
       (error, stdout, stderr) => {
         resolve({
@@ -37,6 +38,10 @@ function runCli(cwd, args) {
       },
     );
   });
+}
+
+function runCli(cwd, args) {
+  return runNodeScript(cwd, cliPath, args);
 }
 
 after(async () => {
@@ -335,4 +340,19 @@ test("CLI supports the conventional --version alias", async () => {
   assert.equal(result.code, 0);
   assert.equal(result.stdout.trim(), "0.1.0");
   assert.equal(result.stderr, "");
+});
+
+test("release check accepts the tag matching all repository versions", async () => {
+  const result = await runNodeScript(packageRoot, releaseCheckPath, ["v0.1.0"]);
+
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /Release v0\.1\.0 is internally consistent/);
+  assert.equal(result.stderr, "");
+});
+
+test("release check rejects a tag that differs from the package version", async () => {
+  const result = await runNodeScript(packageRoot, releaseCheckPath, ["v9.9.9"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /must match package version 0\.1\.0/);
 });

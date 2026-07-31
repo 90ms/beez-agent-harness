@@ -96,4 +96,3 @@ npx beez-agent-harness help
 npx beez-agent-harness help init
 npx beez-agent-harness update --help
 ```
-

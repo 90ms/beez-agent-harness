@@ -16,6 +16,7 @@ Versioning.
 - Added strict command option validation, command-specific help,
   `--preset=<name>`, and `--version` support.
 - Added bilingual configuration, CLI reference, and troubleshooting guides.
+- Added a verified, OIDC-based npm and GitHub release workflow.
 
 ## [0.1.0] - 2026-07-24
 

@@ -224,6 +224,7 @@ Related documentation:
 - [Project configuration guide](docs/en/configuration.md)
 - [CLI reference](docs/en/cli-reference.md)
 - [Troubleshooting](docs/en/troubleshooting.md)
+- [Release guide](docs/en/releasing.md)
 - [v0.1 specification](SPEC.md)
 - [Contribution guide](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

@@ -108,4 +108,3 @@ npx beez-agent-harness doctor
 
 `doctor`는 필수 필드, 명령과 경계의 타입, 관리 경로와 해시, 생성 안내문,
 Harness 버전을 점검합니다.
-

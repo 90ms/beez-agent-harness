@@ -107,4 +107,3 @@ Check command-specific help for supported options.
 npx beez-agent-harness help doctor
 npx beez-agent-harness init --help
 ```
-

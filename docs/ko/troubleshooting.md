@@ -108,4 +108,3 @@ Unknown option or argument for doctor: --unknown
 npx beez-agent-harness help doctor
 npx beez-agent-harness init --help
 ```
-

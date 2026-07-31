@@ -31,6 +31,10 @@ function frontmatter(source, file) {
 const packageJson = await json("package.json");
 const plugin = await json(".codex-plugin/plugin.json");
 const marketplace = await json(".agents/plugins/marketplace.json");
+const releaseWorkflow = await readFile(
+  path.join(root, ".github/workflows/release.yml"),
+  "utf8",
+);
 
 assert.equal(plugin.name, packageJson.name, "Plugin and package names must match");
 assert.equal(
@@ -44,6 +48,21 @@ assert.equal(marketplace.plugins[0].name, plugin.name);
 assert.equal(marketplace.plugins[0].source.path, "./");
 assert.equal(marketplace.plugins[0].policy.installation, "AVAILABLE");
 assert.equal(marketplace.plugins[0].policy.authentication, "ON_INSTALL");
+assert.match(
+  releaseWorkflow,
+  /environment: npm/,
+  "Release workflow must use the protected npm environment",
+);
+assert.match(
+  releaseWorkflow,
+  /id-token: write/,
+  "Release workflow must request OIDC only for publishing",
+);
+assert.match(
+  releaseWorkflow,
+  /npm publish --access public/,
+  "Release workflow must publish the public npm package",
+);
 
 const skillRoot = path.join(root, "skills");
 const skillFolders = (await readdir(skillRoot, { withFileTypes: true }))

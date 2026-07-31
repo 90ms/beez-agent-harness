@@ -217,6 +217,7 @@ npm pack --dry-run
 - [프로젝트 설정 가이드](docs/ko/configuration.md)
 - [CLI 명령어](docs/ko/cli-reference.md)
 - [문제 해결](docs/ko/troubleshooting.md)
+- [릴리스 가이드](docs/ko/releasing.md)
 - [v0.1 명세](SPEC.md)
 - [기여 가이드](CONTRIBUTING.md)
 - [보안 정책](SECURITY.md)
