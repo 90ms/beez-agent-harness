@@ -294,3 +294,45 @@ test("CLI rejects initialization when the harness is already initialized", async
   assert.equal(second.code, 1);
   assert.match(second.stderr, /Harness is already initialized/);
 });
+
+test("CLI supports equals syntax for preset selection", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["init", "--preset=nextjs"]);
+
+  assert.equal(result.code, 0);
+  const project = JSON.parse(
+    await readFile(path.join(cwd, ".harness/project.json"), "utf8"),
+  );
+  assert.equal(project.commands.build, "npm run build");
+});
+
+test("CLI rejects unknown command options", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["doctor", "--unknown"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Unknown option or argument for doctor: --unknown/);
+  assert.equal(result.stdout, "");
+});
+
+test("CLI provides command-specific help without initializing a project", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["init", "--help"]);
+
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /beez-harness init \[--preset base\|nextjs\]/);
+  await assert.rejects(readFile(path.join(cwd, ".harness/manifest.json")));
+});
+
+test("CLI supports the conventional --version alias", async () => {
+  const cwd = await temporaryProject();
+
+  const result = await runCli(cwd, ["--version"]);
+
+  assert.equal(result.code, 0);
+  assert.equal(result.stdout.trim(), "0.1.0");
+  assert.equal(result.stderr, "");
+});
