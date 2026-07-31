@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import {
+  mkdir,
   mkdtemp,
   readFile,
   rm,
+  writeFile,
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -16,6 +18,7 @@ import {
   readRun,
   startRun,
 } from "../lib/runs.js";
+import { verifyProject } from "../lib/verify.js";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 const cliPath = path.join(packageRoot, "bin/beez-harness.js");
@@ -169,4 +172,146 @@ test("rejects invalid run identifiers before filesystem access", async () => {
 
   assert.equal(result.code, 1);
   assert.match(result.stderr, /Invalid run id/);
+});
+
+test("records passing verification without persisting command output", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: {
+        test: 'node -e "console.log(\'TOP_SECRET\')"',
+      },
+      verification: { required: ["test"], timeoutMs: 10_000 },
+      boundaries: [],
+    })}\n`,
+  );
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const active = await startRun({ cwd, packageRoot });
+
+  const verification = await verifyProject({
+    cwd,
+    runId: active.id,
+    commandNames: ["test"],
+  });
+  const storedFiles = await Promise.all([
+    readFile(
+      path.join(cwd, ".harness/runs", active.id, "manifest.json"),
+      "utf8",
+    ),
+    readFile(
+      path.join(cwd, ".harness/runs", active.id, "events.jsonl"),
+      "utf8",
+    ),
+  ]);
+
+  assert.equal(verification.results[0].status, "passed");
+  assert.equal(verification.run.verification.results.test.status, "passed");
+  assert.doesNotMatch(storedFiles.join("\n"), /TOP_SECRET|console\.log/);
+  assert.match(storedFiles.join("\n"), /"command":"test"/);
+});
+
+test("records failed verification and blocks successful completion", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: 'node -e "process.exit(7)"' },
+      verification: { required: ["test"], timeoutMs: 10_000 },
+      boundaries: [],
+    })}\n`,
+  );
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const active = await startRun({ cwd, packageRoot });
+
+  const verification = await verifyProject({
+    cwd,
+    runId: active.id,
+    commandNames: ["test"],
+  });
+
+  assert.equal(verification.results[0].status, "failed");
+  assert.equal(verification.results[0].exitCode, 7);
+  await assert.rejects(
+    finishRun({ cwd, runId: active.id, state: "completed" }),
+    /required verification has not passed: test/,
+  );
+});
+
+test("records commands that exceed the configured timeout", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { slow: 'node -e "setTimeout(() => {}, 10000)"' },
+      verification: { required: ["slow"], timeoutMs: 1_000 },
+      boundaries: [],
+    })}\n`,
+  );
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const active = await startRun({ cwd, packageRoot });
+
+  const verification = await verifyProject({
+    cwd,
+    runId: active.id,
+    commandNames: ["slow"],
+  });
+
+  assert.equal(verification.results[0].status, "timed_out");
+  assert.ok(verification.results[0].durationMs >= 900);
+  assert.ok(verification.results[0].durationMs < 5_000);
+});
+
+test("rejects verification after project configuration changes", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const active = await startRun({ cwd, packageRoot });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { changed: 'node -e "process.exit(0)"' },
+      verification: { required: [], timeoutMs: 10_000 },
+      boundaries: [],
+    })}\n`,
+  );
+
+  await assert.rejects(
+    verifyProject({
+      cwd,
+      runId: active.id,
+      commandNames: ["changed"],
+    }),
+    /Project configuration changed after the run started/,
+  );
+});
+
+test("CLI runs required verification and then completes the run", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: 'node -e "process.exit(0)"' },
+      verification: { required: ["test"], timeoutMs: 10_000 },
+      boundaries: [],
+    })}\n`,
+  );
+  await initProject({ cwd, packageRoot, preset: "base" });
+
+  assert.equal((await runCli(cwd, ["run", "start"])).code, 0);
+  const verification = await runCli(cwd, ["verify", "--required"]);
+  const finish = await runCli(cwd, ["run", "finish"]);
+
+  assert.equal(verification.code, 0);
+  assert.match(verification.stdout, /test: passed/);
+  assert.equal(finish.code, 0);
+  assert.match(finish.stdout, /State: completed/);
 });

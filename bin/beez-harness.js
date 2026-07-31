@@ -14,6 +14,7 @@ import {
   resolveRun,
   startRun,
 } from "../lib/runs.js";
+import { verifyProject } from "../lib/verify.js";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -51,6 +52,15 @@ Options:
   --run <id>     Select a run (status and finish)
   --state <name> Terminal state (default: completed)
   -h, --help     Show this help`,
+    verify: `Usage:
+  beez-harness verify --command <name> [--run <id>]
+  beez-harness verify --required [--run <id>]
+
+Options:
+  --command <name>  Run one configured project command
+  --required        Run all configured required commands
+  --run <id>        Select a run (default: active run)
+  -h, --help        Show this help`,
     version: `Usage:
   beez-harness version`,
   };
@@ -63,6 +73,7 @@ Usage:
   beez-harness doctor
   beez-harness update [--check]
   beez-harness run start|status|list|finish
+  beez-harness verify --command <name>|--required
   beez-harness version
   beez-harness help`;
 }
@@ -174,7 +185,7 @@ function parseHelpArgs(args) {
   if (args.length === 0) return undefined;
   if (
     args.length === 1 &&
-    ["init", "doctor", "update", "run", "version"].includes(args[0])
+    ["init", "doctor", "update", "run", "verify", "version"].includes(args[0])
   ) {
     return args[0];
   }
@@ -236,6 +247,9 @@ function parseRunArgs(args) {
 }
 
 function printRun(run) {
+  const verification = Object.entries(run.verification.results)
+    .map(([command, result]) => `${command}=${result.status}`)
+    .join(", ");
   console.log(
     [
       `Run: ${run.id}`,
@@ -243,8 +257,52 @@ function printRun(run) {
       `Created: ${run.createdAt}`,
       `Updated: ${run.updatedAt}`,
       `Required verification: ${run.verification.required.join(", ") || "none"}`,
+      `Verification results: ${verification || "none"}`,
     ].join("\n"),
   );
+}
+
+function parseVerifyArgs(args) {
+  let command;
+  let required = false;
+  let runId;
+  for (let index = 0; index < args.length; index += 1) {
+    const option = args[index];
+    if (HELP_FLAGS.has(option)) {
+      if (args.length !== 1) argumentError("verify", option);
+      return { help: true };
+    }
+    if (option === "--command") {
+      if (command) {
+        throw new Error(
+          `--command may only be specified once\n\n${usage("verify")}`,
+        );
+      }
+      command = optionValue(args, index, "--command", "verify");
+      index += 1;
+    } else if (option === "--required") {
+      if (required) {
+        throw new Error(
+          `--required may only be specified once\n\n${usage("verify")}`,
+        );
+      }
+      required = true;
+    } else if (option === "--run") {
+      if (runId) {
+        throw new Error(`--run may only be specified once\n\n${usage("verify")}`);
+      }
+      runId = optionValue(args, index, "--run", "verify");
+      index += 1;
+    } else {
+      argumentError("verify", option);
+    }
+  }
+  if (Boolean(command) === required) {
+    throw new Error(
+      `Choose exactly one of --command or --required\n\n${usage("verify")}`,
+    );
+  }
+  return { command, help: false, required, runId };
 }
 
 async function main() {
@@ -319,6 +377,31 @@ async function main() {
         }
       } else {
         printRun(await finishRun({ cwd, runId, state }));
+      }
+      break;
+    }
+    case "verify": {
+      const { command, help, required, runId } = parseVerifyArgs(args);
+      if (help) {
+        console.log(usage("verify"));
+        break;
+      }
+      const selectedRun = await resolveRun(cwd, runId);
+      const commandNames = required
+        ? selectedRun.verification.required
+        : [command];
+      const result = await verifyProject({ cwd, runId, commandNames });
+      if (result.results.length === 0) {
+        console.log("No required verification commands are configured.");
+        break;
+      }
+      for (const verification of result.results) {
+        console.log(
+          `${verification.command}: ${verification.status} (${verification.durationMs}ms)`,
+        );
+      }
+      if (result.results.some((item) => item.status !== "passed")) {
+        process.exitCode = 1;
       }
       break;
     }
