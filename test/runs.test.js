@@ -13,6 +13,7 @@ import test, { after } from "node:test";
 import { fileURLToPath } from "node:url";
 import { initProject } from "../lib/harness.js";
 import {
+  checkpointRun,
   finishRun,
   gcRuns,
   listRuns,
@@ -72,8 +73,116 @@ test("starts a run with repository and configuration evidence", async () => {
   assert.match(stored.id, /^[0-9a-f-]{36}$/);
   assert.match(stored.configDigest, /^[a-f0-9]{64}$/);
   assert.deepEqual(stored.repository, { gitSha: null, dirty: null });
-  assert.deepEqual(stored.verification, { required: [], results: {} });
+  assert.equal(stored.workflow, null);
+  assert.deepEqual(stored.verification, {
+    profile: null,
+    required: [],
+    results: {},
+  });
+  assert.deepEqual(stored.checkpoints, []);
   assert.equal(JSON.parse(events).type, "run.started");
+});
+
+test("records workflow metadata and a selected verification profile", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: {
+        test: 'node -e "process.exit(0)"',
+        security: 'node -e "process.exit(0)"',
+      },
+      verification: {
+        required: ["test"],
+        profiles: {
+          default: ["test"],
+          migration: ["test"],
+          security: ["test", "security"],
+          release: ["test"],
+          performance: ["test"],
+        },
+        timeoutMs: 10_000,
+      },
+      boundaries: [],
+    })}\n`,
+  );
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const workflow = {
+    domains: ["security", "migration"],
+    mode: "change",
+    risk: "high",
+    sideEffects: "local",
+  };
+
+  const run = await startRun({
+    cwd,
+    packageRoot,
+    workflow,
+    profile: "security",
+  });
+
+  assert.deepEqual(run.workflow, workflow);
+  assert.equal(run.verification.profile, "security");
+  assert.deepEqual(run.verification.required, ["test", "security"]);
+  await verifyProject({ cwd, runId: run.id, commandNames: ["test"] });
+  await assert.rejects(
+    finishRun({ cwd, runId: run.id }),
+    /required verification has not passed: security/,
+  );
+});
+
+test("reads v0.3 run manifests without workflow evidence fields", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const run = await startRun({ cwd, packageRoot });
+  const manifestFile = path.join(cwd, ".harness/runs", run.id, "manifest.json");
+  const legacy = JSON.parse(await readFile(manifestFile, "utf8"));
+  delete legacy.workflow;
+  delete legacy.checkpoints;
+  delete legacy.verification.profile;
+  await writeFile(manifestFile, `${JSON.stringify(legacy)}\n`);
+
+  const stored = await readRun(cwd, run.id);
+  assert.equal(stored.workflow, undefined);
+  assert.equal(stored.verification.profile, undefined);
+  assert.equal(stored.checkpoints, undefined);
+});
+
+test("records bounded checkpoint and artifact digest evidence", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  await writeFile(path.join(cwd, "plan.md"), "sensitive plan content\n");
+  const run = await startRun({ cwd, packageRoot });
+
+  const updated = await checkpointRun({
+    cwd,
+    runId: run.id,
+    phase: "plan",
+    state: "completed",
+    artifact: "plan.md",
+  });
+  const stored = await Promise.all([
+    readFile(path.join(cwd, ".harness/runs", run.id, "manifest.json"), "utf8"),
+    readFile(path.join(cwd, ".harness/runs", run.id, "events.jsonl"), "utf8"),
+  ]);
+
+  assert.equal(updated.checkpoints.length, 1);
+  assert.equal(updated.checkpoints[0].artifact.path, "plan.md");
+  assert.match(updated.checkpoints[0].artifact.digest, /^[a-f0-9]{64}$/);
+  assert.doesNotMatch(stored.join("\n"), /sensitive plan content/);
+  assert.match(stored.join("\n"), /checkpoint\.recorded/);
+  await assert.rejects(
+    checkpointRun({
+      cwd,
+      runId: run.id,
+      phase: "verify",
+      state: "started",
+      artifact: "../outside.md",
+    }),
+    /project-relative|stay inside/,
+  );
 });
 
 test("allows only one active run", async () => {
@@ -411,6 +520,61 @@ test("CLI runs required verification and then completes the run", async () => {
   assert.match(verification.stdout, /test: passed/);
   assert.equal(finish.code, 0);
   assert.match(finish.stdout, /State: completed/);
+});
+
+test("CLI records workflow metadata, profile verification, and checkpoints", async () => {
+  const cwd = await temporaryProject();
+  await mkdir(path.join(cwd, ".harness"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".harness/project.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      commands: { test: 'node -e "process.exit(0)"' },
+      verification: {
+        required: ["test"],
+        profiles: { security: ["test"] },
+        timeoutMs: 10_000,
+      },
+      boundaries: [],
+    })}\n`,
+  );
+  await initProject({ cwd, packageRoot, preset: "base" });
+
+  const start = await runCli(cwd, [
+    "run",
+    "start",
+    "--domain",
+    "security",
+    "--mode",
+    "change",
+    "--risk",
+    "high",
+    "--side-effects",
+    "local",
+    "--profile",
+    "security",
+  ]);
+  const checkpoint = await runCli(cwd, [
+    "run",
+    "checkpoint",
+    "--phase",
+    "implement",
+    "--state",
+    "completed",
+  ]);
+  const verification = await runCli(cwd, [
+    "verify",
+    "--profile",
+    "security",
+  ]);
+
+  assert.equal(start.code, 0);
+  assert.match(start.stdout, /Workflow: security\/change\/high\/local/);
+  assert.match(start.stdout, /Verification profile: security/);
+  assert.equal(checkpoint.code, 0);
+  assert.match(checkpoint.stdout, /Checkpoints: 1/);
+  assert.equal(verification.code, 0);
+  assert.match(verification.stdout, /test: passed/);
 });
 
 test("CLI resumes active runs and prunes terminal history", async () => {

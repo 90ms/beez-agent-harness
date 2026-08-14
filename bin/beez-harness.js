@@ -9,6 +9,7 @@ import {
   updateProject,
 } from "../lib/harness.js";
 import {
+  checkpointRun,
   finishRun,
   gcRuns,
   listRuns,
@@ -45,25 +46,35 @@ Options:
   --diff      Preview managed-file changes without writing
   -h, --help  Show this help`,
     run: `Usage:
-  beez-harness run start
+  beez-harness run start [--domain <name> ... --mode <name> --risk <name> --side-effects <name>] [--profile <name>]
   beez-harness run status [--run <id>]
   beez-harness run list
   beez-harness run resume [--run <id>]
+  beez-harness run checkpoint [--run <id>] --phase <name> --state started|completed|blocked [--artifact <path>]
   beez-harness run finish [--run <id>] [--state completed|failed|cancelled]
   beez-harness run gc [--keep <count>]
 
 Options:
-  --run <id>     Select a run (status, resume, and finish)
+  --run <id>     Select a run
+  --domain <name>  Add a workflow domain (repeatable, start only)
+  --mode <name>    Record workflow mode (start only)
+  --risk <name>    Record workflow risk (start only)
+  --side-effects <name>  Record the furthest side effect (start only)
+  --profile <name>  Select a verification profile (start only)
+  --phase <name>   Record a bounded phase checkpoint
+  --artifact <path>  Record a project-relative artifact digest
   --state <name> Terminal state (default: completed)
   --keep <count> Keep this many newest terminal runs (default: 20)
   -h, --help     Show this help`,
     verify: `Usage:
   beez-harness verify --command <name> [--run <id>]
   beez-harness verify --required [--run <id>]
+  beez-harness verify --profile <name> [--run <id>]
 
 Options:
   --command <name>  Run one configured project command
   --required        Run all configured required commands
+  --profile <name>  Run the profile selected when the run started
   --run <id>        Select a run (default: active run)
   -h, --help        Show this help`,
     version: `Usage:
@@ -212,7 +223,7 @@ function parseRunArgs(args) {
     return { help: true };
   }
   if (
-    !["start", "status", "list", "resume", "finish", "gc"].includes(
+    !["start", "status", "list", "resume", "checkpoint", "finish", "gc"].includes(
       subcommand,
     )
   ) {
@@ -224,6 +235,14 @@ function parseRunArgs(args) {
   let stateProvided = false;
   let keep = 20;
   let keepProvided = false;
+  const domains = [];
+  let mode;
+  let risk;
+  let sideEffects;
+  let profile;
+  let phase;
+  let checkpointState;
+  let artifact;
   for (let index = 0; index < options.length; index += 1) {
     const option = options[index];
     if (HELP_FLAGS.has(option)) {
@@ -236,12 +255,40 @@ function parseRunArgs(args) {
       }
       runId = optionValue(options, index, "--run", "run");
       index += 1;
+    } else if (option === "--domain") {
+      const value = optionValue(options, index, "--domain", "run");
+      if (domains.includes(value)) {
+        throw new Error(`--domain values must be unique\n\n${usage("run")}`);
+      }
+      domains.push(value);
+      index += 1;
+    } else if (["--mode", "--risk", "--side-effects", "--profile", "--phase", "--artifact"].includes(option)) {
+      const values = {
+        "--mode": mode,
+        "--risk": risk,
+        "--side-effects": sideEffects,
+        "--profile": profile,
+        "--phase": phase,
+        "--artifact": artifact,
+      };
+      if (values[option] !== undefined) {
+        throw new Error(`${option} may only be specified once\n\n${usage("run")}`);
+      }
+      const value = optionValue(options, index, option, "run");
+      if (option === "--mode") mode = value;
+      if (option === "--risk") risk = value;
+      if (option === "--side-effects") sideEffects = value;
+      if (option === "--profile") profile = value;
+      if (option === "--phase") phase = value;
+      if (option === "--artifact") artifact = value;
+      index += 1;
     } else if (option === "--state") {
       if (stateProvided) {
         throw new Error(`--state may only be specified once\n\n${usage("run")}`);
       }
       state = optionValue(options, index, "--state", "run");
       stateProvided = true;
+      if (subcommand === "checkpoint") checkpointState = state;
       index += 1;
     } else if (option === "--keep") {
       if (keepProvided) {
@@ -266,10 +313,27 @@ function parseRunArgs(args) {
     }
   }
 
-  if ((subcommand === "start" || subcommand === "list") && options.length > 0) {
+  const workflowProvided =
+    domains.length > 0 || mode !== undefined || risk !== undefined || sideEffects !== undefined;
+  if (subcommand === "start") {
+    if (runId || keepProvided || phase || artifact || stateProvided) {
+      argumentError("run", runId ? "--run" : keepProvided ? "--keep" : phase ? "--phase" : artifact ? "--artifact" : "--state");
+    }
+    if (
+      workflowProvided &&
+      (domains.length === 0 || !mode || !risk || !sideEffects)
+    ) {
+      throw new Error(
+        `Workflow metadata requires --domain, --mode, --risk, and --side-effects\n\n${usage("run")}`,
+      );
+    }
+  } else if (domains.length > 0 || mode || risk || sideEffects || profile) {
+    argumentError("run", domains.length > 0 ? "--domain" : mode ? "--mode" : risk ? "--risk" : sideEffects ? "--side-effects" : "--profile");
+  }
+  if (subcommand === "list" && options.length > 0) {
     argumentError("run", options[0]);
   }
-  if (subcommand !== "finish" && stateProvided) {
+  if (subcommand !== "finish" && subcommand !== "checkpoint" && stateProvided) {
     argumentError("run", "--state");
   }
   if (subcommand !== "gc" && keepProvided) {
@@ -281,7 +345,31 @@ function parseRunArgs(args) {
   if (subcommand === "gc" && stateProvided) {
     argumentError("run", "--state");
   }
-  return { help: false, keep, runId, state, subcommand };
+  if (subcommand === "checkpoint") {
+    if (!phase || !checkpointState) {
+      throw new Error(
+        `run checkpoint requires --phase and --state\n\n${usage("run")}`,
+      );
+    }
+    if (keepProvided) argumentError("run", "--keep");
+  } else if (phase || artifact) {
+    argumentError("run", phase ? "--phase" : "--artifact");
+  }
+  const workflow = workflowProvided
+    ? { domains, mode, risk, sideEffects }
+    : null;
+  return {
+    artifact,
+    checkpointState,
+    help: false,
+    keep,
+    phase,
+    profile: profile ?? null,
+    runId,
+    state,
+    subcommand,
+    workflow,
+  };
 }
 
 function printRun(run) {
@@ -294,14 +382,18 @@ function printRun(run) {
       `State: ${run.state}`,
       `Created: ${run.createdAt}`,
       `Updated: ${run.updatedAt}`,
+      `Workflow: ${run.workflow ? `${run.workflow.domains.join("+")}/${run.workflow.mode}/${run.workflow.risk}/${run.workflow.sideEffects}` : "none"}`,
+      `Verification profile: ${run.verification.profile ?? "default"}`,
       `Required verification: ${run.verification.required.join(", ") || "none"}`,
       `Verification results: ${verification || "none"}`,
+      `Checkpoints: ${(run.checkpoints ?? []).length}`,
     ].join("\n"),
   );
 }
 
 function parseVerifyArgs(args) {
   let command;
+  let profile;
   let required = false;
   let runId;
   for (let index = 0; index < args.length; index += 1) {
@@ -325,6 +417,14 @@ function parseVerifyArgs(args) {
         );
       }
       required = true;
+    } else if (option === "--profile") {
+      if (profile) {
+        throw new Error(
+          `--profile may only be specified once\n\n${usage("verify")}`,
+        );
+      }
+      profile = optionValue(args, index, "--profile", "verify");
+      index += 1;
     } else if (option === "--run") {
       if (runId) {
         throw new Error(`--run may only be specified once\n\n${usage("verify")}`);
@@ -335,12 +435,12 @@ function parseVerifyArgs(args) {
       argumentError("verify", option);
     }
   }
-  if (Boolean(command) === required) {
+  if ([Boolean(command), required, Boolean(profile)].filter(Boolean).length !== 1) {
     throw new Error(
-      `Choose exactly one of --command or --required\n\n${usage("verify")}`,
+      `Choose exactly one of --command, --required, or --profile\n\n${usage("verify")}`,
     );
   }
-  return { command, help: false, required, runId };
+  return { command, help: false, profile, required, runId };
 }
 
 async function main() {
@@ -395,13 +495,24 @@ async function main() {
       break;
     }
     case "run": {
-      const { help, keep, runId, state, subcommand } = parseRunArgs(args);
+      const {
+        artifact,
+        checkpointState,
+        help,
+        keep,
+        phase,
+        profile,
+        runId,
+        state,
+        subcommand,
+        workflow,
+      } = parseRunArgs(args);
       if (help) {
         console.log(usage("run"));
         break;
       }
       if (subcommand === "start") {
-        printRun(await startRun({ cwd, packageRoot }));
+        printRun(await startRun({ cwd, packageRoot, workflow, profile }));
       } else if (subcommand === "status") {
         printRun(await resolveRun(cwd, runId));
       } else if (subcommand === "list") {
@@ -415,6 +526,16 @@ async function main() {
         }
       } else if (subcommand === "resume") {
         printRun(await resumeRun({ cwd, runId }));
+      } else if (subcommand === "checkpoint") {
+        printRun(
+          await checkpointRun({
+            cwd,
+            runId,
+            phase,
+            state: checkpointState,
+            artifact,
+          }),
+        );
       } else if (subcommand === "gc") {
         const result = await gcRuns({ cwd, keep });
         console.log(
@@ -426,13 +547,18 @@ async function main() {
       break;
     }
     case "verify": {
-      const { command, help, required, runId } = parseVerifyArgs(args);
+      const { command, help, profile, required, runId } = parseVerifyArgs(args);
       if (help) {
         console.log(usage("verify"));
         break;
       }
       const selectedRun = await resolveRun(cwd, runId);
-      const commandNames = required
+      if (profile && selectedRun.verification.profile !== profile) {
+        throw new Error(
+          `Run ${selectedRun.id} selected verification profile ${selectedRun.verification.profile ?? "default"}, not ${profile}.`,
+        );
+      }
+      const commandNames = required || profile
         ? selectedRun.verification.required
         : [command];
       const result = await verifyProject({ cwd, runId, commandNames });
