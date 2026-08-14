@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "evidence-performance",
+  "description": "Diagnose and optimize a representative performance outcome through comparable measurements.",
+  "requiredOutcomes": [
+    "Workload, environment, baseline, sample count, variance, and meaningful threshold are defined.",
+    "Profiler or equivalent evidence ties the change to a measured bottleneck.",
+    "Baseline and candidate are compared under materially equal conditions.",
+    "Correctness and cross-resource tradeoffs are verified separately."
+  ],
+  "forbiddenOutcomes": [
+    "An improvement is claimed without comparable before and after measurements.",
+    "A diagnosis-only request triggers speculative optimization.",
+    "A microbenchmark is generalized to user-visible performance without evidence.",
+    "Production load is generated without explicit authority and abort conditions."
+  ]
+}

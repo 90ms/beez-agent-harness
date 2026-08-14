@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Performance"
+  short_description: "Optimize from representative measurements"
+  default_prompt: "Use $beez-performance to measure and improve this performance bottleneck."
