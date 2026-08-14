@@ -13,8 +13,8 @@
 - 승인 review 1개와 소유 경로의 CODEOWNER review를 요구합니다.
 - review 가능한 변경이 추가되면 기존 승인을 무효화하고 모든 대화 해결을
   요구합니다.
-- 현재 CI job인 `validate (20)`, `validate (22)`, `validate (24)`, `windows`를
-  required check로 지정합니다.
+- 현재 CI job인 `validate (20)`, `validate (22)`, `validate (24)`, `windows`,
+  `dependency-review`를 required check로 지정합니다.
 - check 이름이 안정적인지 확인한 뒤 최신 base branch 상태를 요구합니다.
 - force push와 branch 삭제를 차단합니다.
 - bypass는 이름이 지정된 비상 maintainer 또는 감사 가능한 release app으로
@@ -53,6 +53,12 @@ reporting으로 안내합니다.
 PR template은 목적, 변경 유형, 위험도, side effect, 호환성, 검증,
 보안/성능 영향, rollback, 외부 작업을 기록합니다. Template은 검토와 CI를
 대체하지 않습니다.
+
+GitHub 설정에서 dependency graph와 dependency review도 활성화해야
+`dependency-review` job이 동작합니다. Private vulnerability reporting을 켜고,
+maintainer 구성에서 가능하면 `npm` environment에 required reviewer를 지정하며,
+Actions source를 승인된 범위로 제한합니다. 이 설정은 workflow YAML만으로 강제할
+수 없습니다.
 
 ## 비상 변경
 

@@ -14,7 +14,7 @@ Target the default branch and use active enforcement:
 - dismiss stale approvals after reviewable changes and require conversation
   resolution;
 - require the current CI jobs: `validate (20)`, `validate (22)`,
-  `validate (24)`, and `windows`;
+  `validate (24)`, `windows`, and `dependency-review`;
 - require the branch to be up to date after confirming the check names are
   stable;
 - block force pushes and branch deletion;
@@ -54,6 +54,12 @@ override. Vulnerability reports are routed to private vulnerability reporting.
 The pull request template records purpose, change type, risk, side effects,
 compatibility, verification, security/performance impact, rollback, and external
 actions. Templates improve evidence but do not replace review or CI.
+
+GitHub settings must also enable the dependency graph and dependency review for
+the `dependency-review` job. Keep private vulnerability reporting enabled,
+protect the `npm` environment with required reviewers where the maintainer model
+allows, and restrict Actions to approved sources. Workflow YAML cannot enforce
+these repository settings by itself.
 
 ## Emergency changes
 
