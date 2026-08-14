@@ -8,6 +8,13 @@
   },
   "verification": {
     "required": ["test", "lint", "build"],
+    "profiles": {
+      "default": ["test", "lint", "build"],
+      "migration": ["test", "lint", "build"],
+      "security": ["test", "lint", "build"],
+      "release": ["test", "lint", "build"],
+      "performance": ["test", "lint", "build"]
+    },
     "timeoutMs": 600000
   },
   "boundaries": [

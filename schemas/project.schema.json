@@ -27,6 +27,22 @@
           },
           "uniqueItems": true
         },
+        "profiles": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "maxLength": 64
+          },
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        },
         "timeoutMs": {
           "type": "integer",
           "minimum": 1000,
