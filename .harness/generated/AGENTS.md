@@ -11,11 +11,20 @@ its boundaries. Inspect repository status and preserve unrelated work.
 
 ## Lifecycle
 
+Classify every request by domain (`general`, `debug`, `migration`, `security`,
+`release`, `performance`, or `github`), mode (`explain`, `inspect`, `diagnose`,
+`plan`, `change`, `verify`, `review`, or `execute`), risk, and furthest side
+effect. Explicit prohibitions such as "do not edit", "do not commit", or "do not
+deploy" always remain in force.
+
 - Explanation or status: inspect and answer.
+- Diagnosis only: reproduce or inspect, identify causes, and report without a fix.
 - Small mechanical change: implement, then verify.
 - Feature or behavior change: specify, plan, implement, verify, then review.
 - Bug fix: reproduce, fix, add a regression guard, verify, then review.
-- High-risk change: use the full lifecycle and include rollback evidence.
+- Refactor or migration: define invariants, plan, implement, verify, then review.
+- High-risk or external execution: use the full lifecycle with rollback evidence
+  and act only with explicit authority.
 
 Use the smallest sufficient workflow. Do not broaden the requested scope or
 claim completion without fresh evidence.
