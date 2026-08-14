@@ -2,11 +2,11 @@
 
 [한국어](../ko/configuration.md) | [English](configuration.md)
 
-Beez Agent Harness stores repository-specific commands and boundaries in
-`.harness/project.json`. The project owns this file, and neither `init` nor
-`update` overwrites it.
+Beez Agent Harness stores repository-specific commands, verification profiles,
+and boundaries in `.harness/project.json`. The project owns this file; neither
+`init` nor `update` overwrites it.
 
-## Basic structure
+## Complete structure
 
 ```json
 {
@@ -14,10 +14,18 @@ Beez Agent Harness stores repository-specific commands and boundaries in
   "commands": {
     "test": "npm test",
     "lint": "npm run lint",
-    "build": "npm run build"
+    "build": "npm run build",
+    "audit": "npm audit"
   },
   "verification": {
-    "required": ["test", "lint", "build"],
+    "required": ["test", "lint"],
+    "profiles": {
+      "default": ["test", "lint"],
+      "migration": ["test", "lint", "build"],
+      "security": ["test", "lint", "audit"],
+      "release": ["test", "lint", "build"],
+      "performance": ["test", "build"]
+    },
     "timeoutMs": 600000
   },
   "boundaries": [
@@ -27,74 +35,73 @@ Beez Agent Harness stores repository-specific commands and boundaries in
 }
 ```
 
+## Fields
+
 ### `schemaVersion`
 
-The version of the configuration format. The only currently supported value is
-`1`.
+The project configuration format. The only supported value is `1`.
 
 ### `commands`
 
-Declare real project verification commands as strings. The Harness runs one
-only when the operator invokes `verify` and selects it. Do not invent
-unsupported commands; record only commands confirmed in files such as
-`package.json` or existing development documentation.
+An object mapping stable names to real project command strings. The CLI runs a
+command only after the operator selects it through `verify`. Declare only
+commands confirmed by repository configuration or documentation; the Harness
+does not discover or infer them.
 
-```json
-{
-  "commands": {
-    "install": "pnpm install",
-    "test": "pnpm test",
-    "lint": "pnpm lint",
-    "build": "pnpm build"
-  }
-}
-```
+Command names may then be referenced by `required` and any profile. A command
+may have normal local side effects, so review install, migration, audit, or
+benchmark commands before registering them.
 
 ### `verification`
 
-This field is optional. Existing v0.2 configuration without it remains valid
-and has no implicitly required commands.
+This object is optional for backward compatibility. Without it, no command is
+implicitly required.
 
-- `required`: Names from `commands` that must pass before a run can become
-  `completed`. Duplicates and unknown names are rejected.
-- `timeoutMs`: Per-command timeout from 1,000 through 3,600,000 milliseconds.
-  The default is 300,000 when omitted.
+- `required`: ordered command names used when a run starts without `--profile`.
+- `profiles`: optional named ordered command lists. At most 32 profiles are
+  accepted. Names use lowercase letters, numbers, and single hyphen-separated
+  segments, with a maximum length of 64.
+- `timeoutMs`: per-command timeout from 1,000 through 3,600,000 milliseconds;
+  defaults to 300,000.
 
-```json
-{
-  "verification": {
-    "required": ["test", "lint"],
-    "timeoutMs": 300000
-  }
-}
+All referenced commands must exist in `commands`. Duplicate command names,
+duplicate profiles, unknown commands, malformed names, and extra fields are
+rejected.
+
+At `run start`, the selected list is copied into the run. Later edits to
+`project.json` change its digest and block successful completion of that run;
+finish it as failed/cancelled and start a new one.
+
+```bash
+npx beez-agent-harness run start --profile security
+npx beez-agent-harness verify --profile security
 ```
 
-`verify --required` executes commands in array order. Run records do not
-persist command text, environment values, or raw stdout/stderr.
+`verify --required` runs the run's snapshotted required list, not an untracked
+new command list. Output remains in the terminal and is not copied to evidence.
 
 ### `boundaries`
 
-Define the project rules agents must follow while making changes. Keep each
-entry short and actionable.
+An array of short, actionable repository rules that agents must follow. Keep
+authority and safety boundaries explicit.
 
 Good examples:
 
 - `Do not expose server secrets through NEXT_PUBLIC_ variables.`
 - `Do not modify generated database migrations.`
+- `Do not publish packages or deploy without explicit authority.`
 - `Preserve unrelated user changes.`
 
-Avoid:
-
-- ambiguous rules;
-- conflicting rules;
-- commands or paths that cannot be confirmed in the repository.
+Avoid ambiguous or conflicting rules and paths or commands that cannot be
+confirmed in the repository.
 
 ## Presets
 
 ### `base`
 
-Provides minimal language- and framework-independent boundaries. Add the
-project's actual commands after initialization.
+Language-independent boundaries plus empty `default`, `migration`, `security`,
+`release`, and `performance` profiles. Add real project commands before relying
+on those profiles.
 
 ```bash
 npx beez-agent-harness init --preset base
@@ -102,18 +109,20 @@ npx beez-agent-harness init --preset base
 
 ### `nextjs`
 
-Provides Next.js boundaries and `install`, `test`, `lint`, and `build` commands.
-The package manager is detected in this lock-file priority order, falling back
-to `npm` when no matching file exists:
+Provides `install`, `test`, `lint`, and `build` commands plus the same named
+profiles populated with test, lint, and build. Package-manager detection uses:
 
 1. `pnpm-lock.yaml`
 2. `yarn.lock`
 3. `bun.lock` or `bun.lockb`
-4. `npm`
+4. `npm` fallback
 
 ```bash
 npx beez-agent-harness init --preset nextjs
 ```
+
+Adjust commands when the project does not define every generated package
+script. `doctor` correctly rejects profile references to removed commands.
 
 ## File ownership
 
@@ -122,18 +131,19 @@ npx beez-agent-harness init --preset nextjs
 | `.harness/project.json` | Project | Yes |
 | `.harness/manifest.json` | Harness | No |
 | `.harness/generated/AGENTS.md` | Harness | No |
-| `.harness/runs/**` | Operational state | Manage through the CLI |
-| Root `AGENTS.md` | Project | Yes |
+| `.harness/runs/**` | Operational state | Use the CLI |
+| Root `AGENTS.md` | Project/shared | Yes |
 
-Put project-specific policy in `.harness/project.json` or the root `AGENTS.md`.
-Editing generated guidance directly causes `doctor` to report drift.
+Put repository-specific prose in `boundaries` or root `AGENTS.md`. Direct edits
+to generated guidance are reported as drift.
 
-## Check the configuration
+## Validate configuration
 
 ```bash
 npx beez-agent-harness doctor
+npx beez-agent-harness doctor --json
 ```
 
-`doctor` checks required fields, command, verification, and boundary types,
-verification references, managed paths and hashes, generated guidance, and the
-Harness version.
+`doctor` checks field types and extra fields, profile and required references,
+timeouts, managed paths and hashes, generated guidance, root integration, and
+the applied Harness version. JSON mode reports the same health decision.

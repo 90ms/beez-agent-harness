@@ -2,11 +2,28 @@
 
 [한국어](../ko/troubleshooting.md) | [English](troubleshooting.md)
 
-Start by checking the state from the project root.
+Start from the target repository root and inspect health:
 
 ```bash
 npx beez-agent-harness doctor
+npx beez-agent-harness doctor --json
 ```
+
+## Natural-language requests do not select a Beez Skill
+
+The adapter and Skills are separate installation layers. `.harness/` provides
+project context but does not install Skills into the agent environment.
+
+1. Confirm the plugin or selected Skills are installed and restart the agent
+   host after first installation.
+2. Confirm the root `AGENTS.md` directs the agent to read
+   `.harness/generated/AGENTS.md` and `.harness/project.json`.
+3. Try an explicit invocation such as `$using-beez-harness` or `$beez-debug` to
+   distinguish discovery from routing behavior.
+
+Different hosts may discover `SKILL.md` differently. The workflows remain
+usable standalone, but automatic routing depends on the host exposing their
+descriptions to the agent.
 
 ## Harness is already initialized
 
@@ -14,33 +31,30 @@ npx beez-agent-harness doctor
 Harness is already initialized; use `beez-harness update`
 ```
 
-`.harness/manifest.json` already exists. Use the update flow instead of running
-`init` again.
+Use the update flow rather than deleting or editing the manifest:
 
 ```bash
 npx beez-agent-harness update --check
+npx beez-agent-harness update --diff
 npx beez-agent-harness update
 ```
 
-Do not edit the manifest to change presets. The CLI does not provide a
-preset migration command after initialization.
+The CLI does not migrate an initialized project to another preset. Update the
+project-owned commands and boundaries explicitly when requirements change.
 
-## Cannot read the manifest or project configuration
+## Manifest or project configuration cannot be read
 
 ```text
 Cannot read harness manifest
 Invalid JSON in project configuration
 ```
 
-Check these files:
+Restore a damaged `.harness/manifest.json` from version control or a known
+package update. Correct JSON syntax and field types in project-owned
+`.harness/project.json`, then rerun `doctor`. Do not delete unknown fields until
+you confirm the installed CLI version supports the intended contract.
 
-- `.harness/manifest.json`: Harness-managed.
-- `.harness/project.json`: Project-managed.
-
-Correct the JSON syntax and field types in `project.json`, then run `doctor`
-again. Restoring a damaged manifest from version control is the safest recovery.
-
-## Managed file is missing or has drifted
+## Managed guidance is missing or drifted
 
 ```text
 Managed file is missing: .harness/generated/AGENTS.md
@@ -48,9 +62,8 @@ Managed file has drifted: .harness/generated/AGENTS.md
 Managed file differs from generated guidance: .harness/generated/AGENTS.md
 ```
 
-If project-specific rules were added directly to the generated file, move them
-to `.harness/project.json` or the root `AGENTS.md` first. Then restore the
-managed file.
+Move project-specific prose from the generated file to `.harness/project.json`
+or root `AGENTS.md`, then regenerate:
 
 ```bash
 npx beez-agent-harness update
@@ -64,68 +77,107 @@ warning: AGENTS.md is missing
 warning: AGENTS.md does not reference .harness/generated/AGENTS.md
 ```
 
-Add this direction to the existing `AGENTS.md`:
+Add this project-owned direction:
 
 ```markdown
 Before starting software work, read `.harness/generated/AGENTS.md` and
 `.harness/project.json`.
 ```
 
-When this is the only warning, `doctor` exits with code `0`.
+A warning alone does not make `doctor` exit non-zero.
 
-## Harness version differs
+## Applied Harness version differs
 
 ```text
 warning: Project uses harness X; CLI provides Y
 ```
 
-Check the update and then refresh the project adapter.
+Preview and apply the adapter update with the intended CLI version:
 
 ```bash
 npx beez-agent-harness@latest update --check
+npx beez-agent-harness@latest update --diff
 npx beez-agent-harness@latest update
 npx beez-agent-harness@latest doctor
 ```
 
-The update preserves `project.json` and an existing root `AGENTS.md`.
+This preserves project configuration and existing root guidance.
 
-## `update --check` fails in CI
+## Unknown or mismatched verification profile
 
-`update --check` intentionally exits with code `1` when it detects an update or
-drift. Inspect the log, run `update` locally, and review the generated changes
-before committing them.
+```text
+Unknown verification profile: security
+Run ... selected verification profile release, not security.
+```
 
-## Run cannot complete
+Declare the profile and every referenced command in `.harness/project.json`
+before starting the run. A run snapshots one profile; use that same name with
+`verify --profile`, or finish the run and start another with the intended
+profile. Use `verify --command <name>` only for an additional registered check;
+it does not replace a missing selected-profile result.
+
+## Run cannot complete or configuration changed
 
 ```text
 Run cannot complete; required verification has not passed
+Project configuration changed after the run started
 ```
 
-Check `verification.required` in `project.json` and run verification against
-the active run.
+Inspect the run and execute its selected gate:
 
 ```bash
 npx beez-agent-harness run status
 npx beez-agent-harness verify --required
+# or: npx beez-agent-harness verify --profile <selected-profile>
 npx beez-agent-harness run finish
 ```
 
-When configuration changed after start, finish the current run as `failed` or
-`cancelled`, then start a new run. Do not reuse evidence produced for the old
-configuration.
+When `project.json` changed after start, old evidence is intentionally stale.
+Finish the run as `failed` or `cancelled`, then start a new run.
 
 ## An active run remains after interruption
 
-Process interruption does not silently mark a run failed. Inspect it and
-continue verification or finish it explicitly.
+Interruption does not silently claim failure or success:
 
 ```bash
 npx beez-agent-harness run resume
+npx beez-agent-harness run status
 npx beez-agent-harness run finish --state cancelled
 ```
 
-Use `run gc --keep <count>` to prune terminal history. Active runs are never
-deleted.
+Only one run may be active. `run gc` never removes it. Review `run list` before
+using `gc`, because pruned terminal evidence is not recoverable through the CLI.
+
+## Checkpoint artifact is rejected
+
+Artifacts must resolve inside the project, be a regular non-symlink file, be at
+most 10 MiB, and have a path no longer than 256 characters. Record a smaller
+summary file rather than a raw log, secret, directory, absolute path, or file
+outside the repository. Only path and digest are evidence; content remains in
+the project.
+
+## `dependency-review` says the repository is unsupported
+
+Enable Dependency graph (or Dependabot alerts, which provisions the graph where
+GitHub supports it) in repository security settings, then rerun the failed job.
+The workflow cannot enable this administrative setting. Forks and new
+repositories need their own setting.
+
+## Release ancestry check fails
+
+```text
+Release commit ... must be reachable from origin/main
+```
+
+Fetch `origin/main` and confirm the exact tag/commit is merged into the default
+branch. Do not bypass the check with a side-branch tag. Merge the reviewed
+release commit first, then create a new authorized tag.
+
+## `update --check` fails in CI
+
+This command intentionally exits `1` for an available version update or managed
+drift. Run `update --diff`, apply `update` locally, review the generated change,
+and commit it.
 
 ## Unsupported option
 
@@ -133,9 +185,10 @@ deleted.
 Unknown option or argument for doctor: --unknown
 ```
 
-Check command-specific help for supported options.
+Use command-specific help:
 
 ```bash
 npx beez-agent-harness help doctor
-npx beez-agent-harness init --help
+npx beez-agent-harness help run
+npx beez-agent-harness verify --help
 ```

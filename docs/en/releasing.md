@@ -2,15 +2,19 @@
 
 [한국어](../ko/releasing.md) | [English](releasing.md)
 
-A tag-triggered GitHub Actions workflow runs verification, publishes to npm,
-and creates a GitHub Release in order. npm publishing uses OIDC Trusted
-Publishing instead of a long-lived token.
+Release preparation, repository publication, npm publication, GitHub Release,
+and deployment are separate authorities. Updating versions and running a dry
+run does not authorize a tag or publication.
 
-## One-time setup
+The tag-triggered workflow verifies an exact commit reachable from
+`origin/main`, publishes to npm through OIDC Trusted Publishing, and then
+creates a GitHub Release.
+
+## One-time repository setup
 
 ### npm Trusted Publisher
 
-Register this Trusted Publisher in the npm package settings.
+Register this publisher in the npm package settings:
 
 | Field | Value |
 | --- | --- |
@@ -21,59 +25,88 @@ Register this Trusted Publisher in the npm package settings.
 | Environment | `npm` |
 | Allowed action | `npm publish` |
 
-The workflow filename and environment name are case-sensitive and must match
-exactly. See the
-[official npm Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/)
-for setup details.
+Names are case-sensitive. See the [npm Trusted Publishing
+documentation](https://docs.npmjs.com/trusted-publishers/).
 
-### GitHub Environment
+### GitHub controls
 
-Create an `npm` environment in the repository and configure required reviewers.
-Tag protection rules are also recommended. The `publish` job runs only after
-the environment is approved.
+Create the protected `npm` Environment and configure required reviewers for the
+maintainer model. Apply the `main` and `v*` rulesets documented in
+[GitHub governance](github-governance.md). Enable Dependency graph for pull
+request dependency review and keep private vulnerability reporting enabled.
 
-## Prepare a release
+## Prepare a versioned release
 
-1. Bump the version in `package.json` and `.codex-plugin/plugin.json`.
-2. Update the repository's adapter with the new CLI version so
-   `.harness/manifest.json` and generated guidance contain the same version.
-3. Move the `CHANGELOG.md` Unreleased entries into a dated version section.
-4. Run the complete checks.
+1. Confirm the intended semantic version and release scope.
+2. Update `package.json` and `.codex-plugin/plugin.json`.
+3. Run the new CLI's adapter update so `.harness/manifest.json` and generated
+   guidance carry the same version.
+4. Move Unreleased entries into a dated `CHANGELOG.md` section.
+5. Review package contents and run all gates.
 
 ```bash
 npm run check
 npm run validate
+npm run evaluate
 npm test
 npm pack --dry-run
 node scripts/check-release.mjs vX.Y.Z
+git fetch origin main
+node scripts/check-release-ancestry.mjs HEAD origin/main
 ```
 
-## Publish
+`check-release.mjs` aligns the requested tag, package, plugin, applied adapter,
+generated guidance, and dated changelog. The ancestry check rejects unsafe ref
+syntax and any exact release commit not reachable from `origin/main`.
 
-Create and push a tag matching the version on the release commit.
+Use a Harness run with the `release` profile when configured. Record a bounded
+checkpoint for the release contract or package report when it materially helps
+review; do not store registry tokens or raw logs.
+
+## Review and merge preparation
+
+Open a pull request describing compatibility, security/performance impact,
+rollback, checks, and any requested external actions. Required CI includes
+Node.js 20/22/24, Windows, deterministic evaluation, tests, package dry-run, and
+dependency review. Actions are pinned to immutable full commit SHAs and jobs
+have timeouts.
+
+Merge the versioned commit to `main` before creating the tag. A side-branch tag
+will fail the release ancestry gate.
+
+## Publish only with explicit authority
+
+On the reviewed release commit:
 
 ```bash
 git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-The workflow performs these steps:
+The workflow performs:
 
-1. Check tag, package, plugin, project adapter, and changelog version alignment.
-2. Run syntax, structure, test, and package checks.
-3. Wait for approval from the `npm` environment.
-4. Publish the public npm package through OIDC.
-5. Create a GitHub Release for the same tag.
+1. exact release ancestry and version alignment;
+2. syntax, repository validation, behavior/routing evaluation, tests, and
+   package dry-run;
+3. approval through the protected `npm` Environment;
+4. public npm publication with OIDC and provenance; and
+5. idempotent GitHub Release creation for the verified tag.
 
-npm automatically generates provenance when Trusted Publishing is used.
+Do not run these tag commands when the request authorizes only preparation or a
+pull request.
 
 ## Failure and recovery
 
-- Before publishing: fix the problem and recreate the tag on the corrected
-  commit.
-- After npm publishing: the same version cannot be published again. Rerun only
-  the GitHub Release job or prepare a patch release.
-- Incorrect package: deprecate the affected version according to npm policy and
-  publish a corrected version.
+- **Before a tag is shared:** fix the release commit, rerun every gate, and tag
+  the corrected merged commit.
+- **Tag workflow fails before npm publication:** correct the problem under the
+  repository's tag policy. Prefer a new version when a protected/shared tag
+  cannot be safely replaced.
+- **npm succeeds but GitHub Release fails:** do not republish the version. Rerun
+  the GitHub Release job; it first checks whether the release already exists.
+- **Incorrect package is published:** the version is immutable. Follow npm
+  policy to deprecate it and prepare a corrective patch release.
+- **Deployment fails:** package/GitHub publication and deployment are distinct;
+  follow the target system's rollback without moving the published tag.
 
-Do not move a tag that has already been shared remotely.
+Never move a tag already shared or used for publication.

@@ -34,6 +34,11 @@ node scripts/evaluate.mjs evals/fixtures/passing-result.json
 `cases/`에는 평가할 작업 계약을 두고, `fixtures/`에는 scorer 자체를 검증할
 예제 결과를 둡니다.
 
+v0.4 작업 계약은 범위가 제한된 debugging, 되돌릴 수 있는 migration, security
+audit, gate가 있는 release, 증거 기반 performance, 통제된 GitHub 작업, 일반 bug
+fix를 포함합니다. 외부 runner가 사용할 계약이며 그 자체로 agent 실행이나
+프로젝트 변경을 수행하지 않습니다.
+
 ## 자연어 라우팅 평가
 
 `routing-cases.json`에는 한국어·영어·혼합 언어 요청 56개가 들어 있습니다.
@@ -52,3 +57,8 @@ node scripts/evaluate-routing.mjs \
 모든 case의 네 분류 축이 정확히 일치하고, 필수 Skill이 선택되며, 금지 action이
 선택되지 않아야 통과합니다. Beez는 특정 모델을 직접 호출하지 않으므로 같은
 corpus를 서로 다른 에이전트나 Skill 버전의 결과에 재사용할 수 있습니다.
+
+`fixtures/routing-suite.json`은 scorer의 작은 fixture이고 `routing-cases.json`은
+전체 acceptance corpus입니다. Routing result는 네 축(`domains`, `mode`, `risk`,
+`sideEffects`)과 선택 Skill/action을 사용합니다. 복합 요청에서도 부정 제약에
+해당하는 action은 결과에 포함되면 안 됩니다.

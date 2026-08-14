@@ -1,5 +1,7 @@
 # GitHub governance
 
+[한국어](../ko/github-governance.md) | [English](github-governance.md)
+
 Repository files standardize collaboration, while GitHub rulesets enforce remote
 state. Committing this document, CODEOWNERS, or templates does not create or
 change a ruleset. A repository administrator or a role with permission to edit
@@ -60,6 +62,31 @@ the `dependency-review` job. Keep private vulnerability reporting enabled,
 protect the `npm` environment with required reviewers where the maintainer model
 allows, and restrict Actions to approved sources. Workflow YAML cannot enforce
 these repository settings by itself.
+
+## Actions and dependency supply chain
+
+CI and release workflows use read-only default permissions, explicit job
+permissions only where publication needs them, bounded timeouts, and immutable
+full-commit Action pins. Checkout does not persist credentials. Pull request CI
+cancels superseded runs, while releases never cancel an in-flight publication.
+
+Dependabot proposes grouped weekly Action-pin updates. Review the upstream tag,
+release notes, exact commit, requested permissions, and CI result before merging
+an update. A version comment beside a SHA is informational; the SHA is the
+enforced identity. Pull requests also run dependency review once Dependency
+graph is enabled.
+
+The release workflow additionally rejects an unsafe ref or a tag commit that is
+not reachable from `origin/main`, then runs repository validation, deterministic
+evaluation, tests, and package dry-run before the protected publish job.
+
+## Beez GitHub workflow authority
+
+`beez-github` distinguishes read-only issue/PR inspection, local branch or
+commit work, and repository mutations such as opening, labeling, merging,
+tagging, releasing, or changing settings. Permission for one mutation does not
+authorize the others. Record the exact repository and preserve user constraints
+such as "open a draft PR but do not merge" throughout composed workflows.
 
 ## Emergency changes
 
