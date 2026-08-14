@@ -368,7 +368,17 @@ test("doctor accepts valid verification configuration", async () => {
     `${JSON.stringify({
       schemaVersion: 1,
       commands: { test: "npm test" },
-      verification: { required: ["test"], timeoutMs: 30_000 },
+      verification: {
+        required: ["test"],
+        profiles: {
+          default: ["test"],
+          security: ["test"],
+          migration: ["test"],
+          release: ["test"],
+          performance: ["test"],
+        },
+        timeoutMs: 30_000,
+      },
       boundaries: ["Keep user changes."],
     })}\n`,
   );
@@ -376,6 +386,32 @@ test("doctor accepts valid verification configuration", async () => {
   const health = await doctorProject({ cwd, packageRoot });
 
   assert.equal(health.ok, true);
+});
+
+test("doctor rejects invalid verification profiles", async () => {
+  const cwd = await temporaryProject();
+  await initProject({ cwd, packageRoot, preset: "base" });
+  const projectFile = path.join(cwd, ".harness/project.json");
+  const project = {
+    schemaVersion: 1,
+    commands: { test: "npm test" },
+    verification: {
+      required: ["test"],
+      profiles: { release: ["missing"] },
+      timeoutMs: 30_000,
+    },
+    boundaries: [],
+  };
+  await writeFile(projectFile, `${JSON.stringify(project)}\n`);
+  let health = await doctorProject({ cwd, packageRoot });
+  assert.equal(health.ok, false);
+  assert.ok(health.errors.some((error) => error.includes("release references")));
+
+  project.verification.profiles = { "Invalid Profile": ["test"] };
+  await writeFile(projectFile, `${JSON.stringify(project)}\n`);
+  health = await doctorProject({ cwd, packageRoot });
+  assert.equal(health.ok, false);
+  assert.ok(health.errors.some((error) => error.includes("Invalid project verification profile")));
 });
 
 test("doctor rejects unknown and duplicate verification commands", async () => {

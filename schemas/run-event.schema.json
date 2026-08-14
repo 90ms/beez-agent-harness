@@ -31,7 +31,8 @@
         "run.failed",
         "run.cancelled",
         "verification.started",
-        "verification.finished"
+        "verification.finished",
+        "checkpoint.recorded"
       ]
     },
     "timestamp": {
@@ -42,5 +43,21 @@
       "type": "object"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": { "const": "checkpoint.recorded" }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "run-manifest.schema.json#/$defs/checkpoint"
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }

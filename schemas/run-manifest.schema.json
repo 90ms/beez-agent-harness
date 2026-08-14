@@ -48,10 +48,21 @@
       },
       "additionalProperties": false
     },
+    "workflow": {
+      "oneOf": [
+        { "$ref": "workflow-route.schema.json" },
+        { "type": "null" }
+      ]
+    },
     "verification": {
       "type": "object",
       "required": ["required", "results"],
       "properties": {
+        "profile": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "maxLength": 64
+        },
         "required": {
           "type": "array",
           "items": {
@@ -69,6 +80,13 @@
       },
       "additionalProperties": false
     },
+    "checkpoints": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/checkpoint"
+      }
+    },
     "createdAt": {
       "type": "string",
       "format": "date-time"
@@ -83,6 +101,44 @@
     }
   },
   "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": ["path", "digest"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "checkpoint": {
+      "type": "object",
+      "required": ["phase", "state", "timestamp"],
+      "properties": {
+        "phase": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+          "maxLength": 64
+        },
+        "state": {
+          "enum": ["started", "completed", "blocked"]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "artifact": {
+          "$ref": "#/$defs/artifact"
+        }
+      },
+      "additionalProperties": false
+    },
     "verificationResult": {
       "type": "object",
       "required": [

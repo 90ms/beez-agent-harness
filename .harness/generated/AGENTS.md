@@ -33,10 +33,14 @@ claim completion without fresh evidence.
 
 When the Beez CLI is available and the task changes software:
 
-1. Reuse the active run or start one with `beez-harness run start`.
-2. Execute configured checks with `beez-harness verify`.
-3. Finish as `completed` only after required verification passes.
-4. Use `failed` or `cancelled` when work stops without satisfying the gate.
+1. Reuse the active run or start one with workflow metadata and a matching
+   verification profile when configured.
+2. Record bounded phase checkpoints and artifact path/digests when they help
+   recovery or review.
+3. Execute configured checks with `beez-harness verify --required` or
+   `beez-harness verify --profile <name>`.
+4. Finish as `completed` only after the selected profile passes.
+5. Use `failed` or `cancelled` when work stops without satisfying the gate.
 
 Run records contain result metadata, not raw command output or environment
 values. Do not edit `.harness/runs/` by hand.

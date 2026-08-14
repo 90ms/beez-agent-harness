@@ -3,6 +3,13 @@
   "commands": {},
   "verification": {
     "required": [],
+    "profiles": {
+      "default": [],
+      "migration": [],
+      "security": [],
+      "release": [],
+      "performance": []
+    },
     "timeoutMs": 300000
   },
   "boundaries": [
