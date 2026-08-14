@@ -88,8 +88,8 @@ Usage:
   beez-harness init [--preset base|nextjs] [--dry-run]
   beez-harness doctor [--json]
   beez-harness update [--check] [--diff]
-  beez-harness run start|status|list|resume|finish|gc
-  beez-harness verify --command <name>|--required
+  beez-harness run start|status|list|resume|checkpoint|finish|gc
+  beez-harness verify --command <name>|--required|--profile <name>
   beez-harness version
   beez-harness help`;
 }

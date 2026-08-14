@@ -2,55 +2,71 @@
 
 [한국어](README.md) | [English](README.en.md)
 
-Beez Agent Harness is a **Codex-first collection of reusable Agent Skills and a
-thin project adapter** for consistent software delivery.
+Beez Agent Harness is a **Codex-first collection of 12 Agent Skills and a thin
+project adapter** that routes natural-language software requests into
+consistent workflows. It composes debugging, migration, security, release,
+performance, and GitHub work with specification, planning, implementation,
+verification, and review while keeping project commands, boundaries, and local
+evidence inside each repository.
 
-It routes work through specification, planning, incremental implementation,
-verification, and review while keeping project-specific commands, boundaries,
-and local run evidence inside each repository.
+This package is not a runtime library imported by application code. Applying it
+to another project has two layers:
 
-## Documentation guide
+1. Install the plugin or selected Skills in the agent environment.
+2. Initialize the `.harness/` project adapter in the target repository.
 
-- [Quick start](#quick-start): Install the plugin and initialize a project
-- [Core concepts](#core-concepts): Understand Skills and the project adapter
-- [Installation](#installation): Install the full plugin or selected Skills
-- [Using it in a project](#using-it-in-a-project): Choose a preset and configure
-  the project
-- [Runs and verification](#runs-and-verification): Record task state and
-  verification evidence
-- [Updates and diagnostics](#updates-and-diagnostics): Update safely and inspect
-  project health
-- [Development and contribution](#development-and-contribution): Repository
-  commands and related documentation
+After that, ordinary requests such as "find and fix this flaky test", "plan the
+database migration but do not execute it", or "prepare the release and only
+open a PR" can select the matching workflow through installed Skill
+descriptions and project guidance. Skill names are optional; explicit
+invocations such as `$beez-debug` also work.
 
 ## Quick start
 
-### 1. Install the Codex plugin
+### 1. Install the agent Skills
+
+Install the complete Codex plugin:
 
 ```bash
 codex plugin marketplace add 90ms/beez-agent-harness
 ```
 
-Restart Codex after the first installation. All six Skills become available.
+Restart Codex after the first installation. All 12 Skills become available. To
+install only selected Skills:
 
-### 2. Initialize a project
+```bash
+npx skills add 90ms/beez-agent-harness --list
+npx skills add 90ms/beez-agent-harness \
+  --skill using-beez-harness \
+  --skill beez-debug \
+  --skill beez-verify \
+  --agent codex
+```
 
-Run these commands from the root of the project you want to configure.
+Add `--global` to use them across projects.
+
+### 2. Apply the adapter to a project
+
+Run this from the target repository root:
 
 ```bash
 npx beez-agent-harness init --preset base
 npx beez-agent-harness doctor
 ```
 
-For a Next.js project, use the `nextjs` preset.
+For Next.js, use the `nextjs` preset with package-manager detection:
 
 ```bash
 npx beez-agent-harness init --preset nextjs
 ```
 
-### 3. Configure project commands and boundaries
+The CLI never overwrites an existing root `AGENTS.md`. If one exists, direct
+the agent to read `.harness/generated/AGENTS.md` and
+`.harness/project.json`.
 
-After initialization, edit `.harness/project.json` for the project.
+### 3. Configure commands and verification profiles
+
+The target project owns `.harness/project.json`:
 
 ```json
 {
@@ -58,10 +74,16 @@ After initialization, edit `.harness/project.json` for the project.
   "commands": {
     "test": "npm test",
     "lint": "npm run lint",
-    "build": "npm run build"
+    "build": "npm run build",
+    "audit": "npm audit"
   },
   "verification": {
-    "required": ["test", "lint", "build"],
+    "required": ["test", "lint"],
+    "profiles": {
+      "default": ["test", "lint"],
+      "security": ["test", "lint", "audit"],
+      "release": ["test", "lint", "build"]
+    },
     "timeoutMs": 600000
   },
   "boundaries": [
@@ -71,223 +93,174 @@ After initialization, edit `.harness/project.json` for the project.
 }
 ```
 
-Agents use the commands and boundaries declared here when working in the
-project. Commands under `verification.required` must pass before a run can
-complete.
+`required` is the default completion gate. `profiles` groups commands by task
+risk. The Harness never guesses or implicitly runs an unregistered command.
 
-### 4. Record a run and its verification
+### 4. Ask in natural language
+
+Use normal requests:
+
+```text
+Reproduce the login API 500, find the root cause, and fix it.
+Plan the Prisma 7 upgrade and rollback; do not change code yet.
+Review the auth change for security and fix only high-severity findings.
+Measure a baseline, improve p95 latency, and keep comparable evidence.
+Prepare 0.4.0 and open a PR, but do not publish or merge it.
+```
+
+Negative constraints such as "do not edit", "do not commit", and "do not
+deploy" survive workflow composition. Inspection, diagnosis, planning, and
+review do not imply change authority. Commit, merge, publish, and deploy are
+also separate authorities.
+
+### 5. Record run evidence
+
+Software changes can record classification and a verification profile:
 
 ```bash
-npx beez-agent-harness run start
-npx beez-agent-harness verify --required
+npx beez-agent-harness run start \
+  --domain security \
+  --domain github \
+  --mode change \
+  --risk high \
+  --side-effects repository \
+  --profile security
+
+npx beez-agent-harness run checkpoint \
+  --phase threat-model \
+  --state completed \
+  --artifact docs/threat-model.md
+
+npx beez-agent-harness verify --profile security
 npx beez-agent-harness run finish
 ```
 
-Command output stays in the current terminal. Run state records only the
-command name and digest, exit status, and duration. It does not persist raw
-output or environment values.
+Run state keeps command names and digests, outcomes and timing, the selected
+workflow/profile, checkpoints, and optional artifact paths plus SHA-256. It
+does not keep command text, stdout/stderr, environment values, or model
+transcripts.
 
-## Core concepts
+## Included capabilities
 
-Beez Agent Harness is not an autonomous agent runtime or a framework-specific
-project generator. It adds Skills, project rules, and local run evidence to an
-existing repository.
-
-### Agent Skills
+### Core Skills
 
 | Skill | Purpose |
 | --- | --- |
-| `using-beez-harness` | Select the smallest lifecycle appropriate for the task and its risk |
-| `beez-spec` | Turn requests into bounded, testable specifications |
-| `beez-plan` | Break specifications into ordered, verifiable tasks |
-| `beez-implement` | Implement behavior in small slices and collect evidence |
-| `beez-verify` | Verify completion through fresh tests and checks |
+| `using-beez-harness` | Classify natural-language work by domain, mode, risk, and side effect |
+| `beez-spec` | Turn a request into a bounded, testable contract |
+| `beez-plan` | Decompose accepted behavior into ordered, verifiable work |
+| `beez-implement` | Implement small behavior-focused slices while preserving unrelated work |
+| `beez-verify` | Gather fresh, claim-specific test and inspection evidence |
 | `beez-review` | Review correctness, regressions, security, data safety, and test gaps |
 
-Only the stages needed for a given task are used.
+### Specialized Skills
 
-| Request | Default lifecycle |
+| Skill | Scope |
 | --- | --- |
-| Explanation or status | Inspect → answer |
-| Small change | Implement → verify |
-| Feature or behavior change | Specify → plan → implement → verify → review |
-| Bug fix | Reproduce → fix → regression verification → review |
-| High-risk change | Full lifecycle + explicit evidence and rollback guidance |
+| `beez-debug` | Reproduction, competing hypotheses, root cause, regression protection |
+| `beez-migrate` | Compatibility windows, cutover, data integrity, rollback |
+| `beez-security` | Threat modeling, severity and exploitability, safe remediation |
+| `beez-release` | Version and artifact alignment, gates, publication authority, recovery |
+| `beez-performance` | Representative baselines, profiling, comparable benchmarks, budgets |
+| `beez-github` | Issues, branches, commits, PRs, reviews, Actions, merges, tags, rulesets |
 
-### Project adapter
+Specialized Skills refine rather than replace the core lifecycle. For example,
+"fix the performance issue and open a release PR" sequences measurement,
+implementation, and verification before release preparation and GitHub work.
 
-The dependency-free Node.js CLI installs this structure into a new or existing
-repository:
+## Routing contract
+
+The Harness classifies meaning on four axes instead of routing from one
+keyword:
+
+| Axis | Values |
+| --- | --- |
+| domain | `general`, `debug`, `migration`, `security`, `release`, `performance`, `github` |
+| mode | `explain`, `inspect`, `diagnose`, `plan`, `change`, `verify`, `review`, `execute` |
+| risk | `low`, `medium`, `high`, `critical` |
+| side effect | `none`, `local`, `repository`, `external-production` |
+
+A provider-neutral scorer checks a 56-case Korean, English, and mixed-language
+corpus covering specialized domains, negative constraints, and composed
+requests. Beez itself does not invoke a model.
+
+## Project adapter and ownership
 
 ```text
+AGENTS.md                         project entry guidance
 .harness/
-├── manifest.json
-├── project.json
-├── generated/
-│   └── AGENTS.md
-└── runs/
-    └── <run-id>/
-        ├── manifest.json
-        └── events.jsonl
+├── manifest.json                applied version and managed hashes
+├── project.json                 project commands, profiles, boundaries
+├── generated/AGENTS.md          Harness-generated guidance
+└── runs/<run-id>/
+    ├── manifest.json            state, route, verification, checkpoints
+    └── events.jsonl             append-only events
 ```
 
-| File | Ownership and purpose |
+| File | Ownership |
 | --- | --- |
-| `.harness/manifest.json` | Records the Harness version and managed-file hashes |
-| `.harness/project.json` | Project-owned commands, required verification, and boundaries |
-| `.harness/generated/AGENTS.md` | Harness-managed guidance that can be refreshed safely |
-| `.harness/runs/**` | CLI-generated run evidence that package updates never modify |
-| `AGENTS.md` | Project entry point that directs agents to the generated guidance |
+| `.harness/manifest.json`, `.harness/generated/**` | Harness-managed |
+| `.harness/project.json`, existing `AGENTS.md`, source | Project-managed |
+| `.harness/runs/**` | CLI operational state; never package-update managed |
+| `.github/**`, `CONTRIBUTING.md` | Repository governance |
 
-An existing root `AGENTS.md` is never overwritten. If it already exists, add an
-instruction that tells agents to read `.harness/generated/AGENTS.md`.
+This adds policy and evidence to a project; it does not become an application
+build or runtime dependency.
 
-## Installation
+## Main CLI
 
-### Complete Codex plugin
-
-```bash
-codex plugin marketplace add 90ms/beez-agent-harness
+```text
+beez-harness init [--preset base|nextjs] [--dry-run]
+beez-harness doctor [--json]
+beez-harness update [--check] [--diff]
+beez-harness run start|status|list|resume|checkpoint|finish|gc
+beez-harness verify --command <name>|--required|--profile <name>
+beez-harness version
+beez-harness help [command]
 ```
 
-This installs all six Skills.
-
-### Selected Skills
-
-List the available Skills:
-
-```bash
-npx skills add 90ms/beez-agent-harness --list
-```
-
-Install only the Skills needed in the current project:
-
-```bash
-npx skills add 90ms/beez-agent-harness \
-  --skill using-beez-harness \
-  --skill beez-implement \
-  --skill beez-verify \
-  --agent codex
-```
-
-Add `--global` to make them available across projects.
-
-## Using it in a project
-
-### Choose a preset
-
-Two presets are currently included.
-
-| Preset | Purpose |
-| --- | --- |
-| `base` | Language- and framework-independent defaults |
-| `nextjs` | Package manager detection, Next.js commands, and frontend verification guidance |
-
-```bash
-npx beez-agent-harness init --preset base
-```
-
-For local development of this repository, run the CLI file directly:
-
-```bash
-node /path/to/beez-agent-harness/bin/beez-harness.js init --preset nextjs
-```
-
-### Initialization behavior
-
-`init` follows these rules:
-
-- Preserve an existing `.harness/project.json`.
-- Never overwrite an existing root `AGENTS.md`.
-- Record generated files and the applied Harness version in `manifest.json`.
-- Detect the package manager from lock files when using the Next.js preset.
-
-Preview initialization before writing:
-
-```bash
-npx beez-agent-harness init --preset nextjs --dry-run
-```
-
-## Runs and verification
-
-A run starts as `active` and ends as `completed`, `failed`, or `cancelled`.
-
-```bash
-npx beez-agent-harness run start
-npx beez-agent-harness run status
-npx beez-agent-harness verify --command test
-npx beez-agent-harness verify --required
-npx beez-agent-harness run finish
-```
-
-Completion is blocked when required verification is missing or failed, or when
-`project.json` changed after the run started. Inspect an interrupted run with
-`run resume`, and prune old terminal history explicitly:
-
-```bash
-npx beez-agent-harness run resume
-npx beez-agent-harness run gc --keep 20
-```
+A run moves from `active` to `completed`, `failed`, or `cancelled`. Completion
+is blocked when selected verification is missing or failed, or when
+`project.json` changed after start. See the [CLI reference](docs/en/cli-reference.md)
+for every option.
 
 ## Updates and diagnostics
 
-There are two independent update layers: the installed plugin or Skills, and
-the adapter inside each project.
-
-### 1. Update the installed plugin or Skills
+Update installed Skills and each project adapter independently:
 
 ```bash
 codex plugin marketplace upgrade
-# or
-npx skills update
-```
+# or npx skills update
 
-### 2. Update the project adapter
-
-```bash
 npx beez-agent-harness@latest update --check
 npx beez-agent-harness@latest update --diff
 npx beez-agent-harness@latest update
-npx beez-agent-harness@latest doctor
 npx beez-agent-harness@latest doctor --json
 ```
 
-- `update --check` exits non-zero when it detects a newer version or managed-file
-  drift.
-- `update --diff` previews managed-file changes without writing.
-- `update` refreshes only Harness-managed files.
-- `.harness/project.json` and an existing root `AGENTS.md` are never overwritten
-  during an update.
-- `doctor` checks configuration, missing files, and managed-file drift.
-- `doctor --json` emits the same health result as machine-readable JSON.
+`update` refreshes only Harness-managed files and preserves
+`.harness/project.json` plus an existing `AGENTS.md`.
 
-## Development and contribution
+## Development and documentation
 
-Node.js 20 or newer is required.
+Node.js 20 or newer is required, with no runtime dependencies.
 
 ```bash
 npm run check
 npm run validate
-npm test
 npm run evaluate
+npm test
 npm pack --dry-run
 ```
 
-This repository applies its own project adapter.
-
-Related documentation:
-
-- [Project configuration guide](docs/en/configuration.md)
+- [Project configuration](docs/en/configuration.md)
 - [CLI reference](docs/en/cli-reference.md)
 - [Architecture](docs/en/architecture.md)
-- [Behavior evaluation](evals/README.en.md)
+- [GitHub governance](docs/en/github-governance.md)
+- [Behavior and routing evaluation](evals/README.en.md)
 - [Troubleshooting](docs/en/troubleshooting.md)
-- [Release guide](docs/en/releasing.md)
-- [Project specification](SPEC.md)
-- [Contribution guide](CONTRIBUTING.md)
+- [Releasing](docs/en/releasing.md)
+- [v0.4 acceptance and release readiness](docs/en/v0.4-acceptance.md)
+- [v0.4 specification](SPEC.md)
+- [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
-- [Changelog](CHANGELOG.md)
-
-## License
-
-[MIT](LICENSE)
