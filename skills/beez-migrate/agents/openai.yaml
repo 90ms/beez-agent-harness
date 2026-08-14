@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Migrate"
+  short_description: "Plan and execute reversible migrations"
+  default_prompt: "Use $beez-migrate to plan and deliver this migration safely."

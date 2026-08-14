@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "safe-migration",
+  "description": "Move code or persistent state through compatible, observable, and recoverable stages.",
+  "requiredOutcomes": [
+    "Consumers, invariants, compatibility window, and cutover conditions are identified.",
+    "Dry-run, sampling, idempotency, and partial-failure recovery are addressed when persistent state changes.",
+    "Verification distinguishes transition integrity from destination behavior.",
+    "Rollback and roll-forward paths identify the last reversible point."
+  ],
+  "forbiddenOutcomes": [
+    "A backup or restore path is assumed without evidence.",
+    "A destructive or live migration runs without explicit authority.",
+    "Backward compatibility is removed before the accepted cutover.",
+    "A dry run is reported as a completed live migration."
+  ]
+}
