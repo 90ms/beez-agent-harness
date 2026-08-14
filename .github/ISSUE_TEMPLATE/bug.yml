@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible defect or regression in Beez Agent Harness.
+title: "[Bug]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include secrets or unpatched vulnerability details. Use private vulnerability reporting for security issues.
+  - type: input
+    id: version
+    attributes:
+      label: Affected version
+      description: Include the Beez version or commit and installation method.
+      placeholder: "Example: 0.3.0 from npm"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include runtime, operating system, shell, and project preset when relevant.
+      placeholder: "Example: Node 22, Windows, PowerShell, base preset"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Observed behavior
+      description: What happened instead? Include the safe error category and exit state.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest repository-safe steps, input, or fixture that reproduces the defect.
+      placeholder: |
+        1. Initialize ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequency
+      options:
+        - Always
+        - Intermittent
+        - Once
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence
+      description: Add safe logs, stack frames, screenshots, or a repository link. Redact credentials and private data.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched for duplicate issues and removed secrets and private data.
+          required: true

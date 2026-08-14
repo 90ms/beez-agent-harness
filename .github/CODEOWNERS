@@ -1,0 +1,20 @@
+# Default ownership
+* @90ms
+
+# Repository policy and automation
+/.github/ @90ms
+/SECURITY.md @90ms
+/CONTRIBUTING.md @90ms
+/scripts/check-release.mjs @90ms
+
+# Agent behavior and published contracts
+/skills/ @90ms
+/templates/ @90ms
+/presets/ @90ms
+/schemas/ @90ms
+/evals/ @90ms
+
+# CLI and evidence runtime
+/bin/ @90ms
+/lib/ @90ms
+/test/ @90ms

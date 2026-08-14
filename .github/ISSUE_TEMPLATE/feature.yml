@@ -1,0 +1,51 @@
+name: Feature request
+description: Propose a bounded behavior, workflow, preset, or integration change.
+title: "[Feature]: "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or user outcome
+      description: Describe the current limitation and who is affected without prescribing the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Desired behavior
+      description: Describe observable behavior and examples, including natural-language prompts when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and boundaries
+      description: State what is included, excluded, and any external side effects.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance evidence
+      description: List testable criteria and verification needed to consider this complete.
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Expected risk
+      options:
+        - Low - narrow and reversible
+        - Medium - behavior or shared interface changes
+        - High - compatibility, security, data, release, or policy impact
+        - Critical - destructive or production impact
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and prior art
+      description: Describe workarounds, related issues, or upstream standards that should be considered.
+    validations:
+      required: false

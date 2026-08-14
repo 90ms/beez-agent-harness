@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { validateIssueFormSource } from "../lib/github-validation.js";
 import { validateRoutingSuite } from "../lib/routing-evaluation.js";
 import { validateSkillRoot } from "../lib/validation.js";
 
@@ -18,6 +19,51 @@ const marketplace = await json(".agents/plugins/marketplace.json");
 const releaseWorkflow = await readFile(
   path.join(root, ".github/workflows/release.yml"),
   "utf8",
+);
+const codeowners = await readFile(path.join(root, ".github/CODEOWNERS"), "utf8");
+const pullRequestTemplate = await readFile(
+  path.join(root, ".github/pull_request_template.md"),
+  "utf8",
+);
+for (const ownedPath of [
+  "/.github/",
+  "/skills/",
+  "/schemas/",
+  "/bin/",
+  "/lib/",
+  "/scripts/check-release.mjs",
+]) {
+  assert.match(
+    codeowners,
+    new RegExp(`^${ownedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+@90ms$`, "m"),
+    `CODEOWNERS must cover ${ownedPath}`,
+  );
+}
+for (const heading of [
+  "Purpose",
+  "Scope and risk",
+  "Compatibility and migration",
+  "Verification",
+  "Security and performance",
+  "Rollback and recovery",
+]) {
+  assert.match(
+    pullRequestTemplate,
+    new RegExp(`^## ${heading}$`, "m"),
+    `Pull request template needs ${heading}`,
+  );
+}
+const issueTemplateRoot = path.join(root, ".github/ISSUE_TEMPLATE");
+for (const form of ["bug.yml", "feature.yml", "performance.yml", "migration.yml"]) {
+  const source = await readFile(path.join(issueTemplateRoot, form), "utf8");
+  validateIssueFormSource(source, `.github/ISSUE_TEMPLATE/${form}`);
+}
+const issueConfig = await readFile(path.join(issueTemplateRoot, "config.yml"), "utf8");
+assert.match(issueConfig, /^blank_issues_enabled: false$/m);
+assert.match(
+  issueConfig,
+  /https:\/\/github\.com\/90ms\/beez-agent-harness\/security\/advisories\/new/,
+  "Issue chooser must route vulnerabilities to private reporting",
 );
 
 assert.equal(plugin.name, packageJson.name, "Plugin and package names must match");

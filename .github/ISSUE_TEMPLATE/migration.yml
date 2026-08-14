@@ -1,0 +1,60 @@
+name: Migration request
+description: Plan a runtime, dependency, API, schema, data, protocol, or infrastructure transition.
+title: "[Migration]: "
+labels: []
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Migration type
+      multiple: true
+      options:
+        - Runtime or dependency
+        - Framework or SDK
+        - API or protocol
+        - Schema or persistent data
+        - Infrastructure or configuration
+    validations:
+      required: true
+  - type: textarea
+    id: states
+    attributes:
+      label: Current and target states
+      description: Identify exact versions or representations and why the transition is needed.
+    validations:
+      required: true
+  - type: textarea
+    id: consumers
+    attributes:
+      label: Producers, consumers, and owners
+      description: List internal and external compatibility obligations and unknown consumers.
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Invariants and compatibility window
+      description: State behavior, availability, security, and data-integrity invariants plus old/new compatibility.
+    validations:
+      required: true
+  - type: textarea
+    id: stages
+    attributes:
+      label: Proposed stages and cutover
+      description: Include expansion, dry run, backfill, consumer rollout, cutover conditions, and destructive cleanup.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification and recovery
+      description: Define integrity evidence, idempotency, partial-failure recovery, rollback, and roll-forward.
+    validations:
+      required: true
+  - type: checkboxes
+    id: authority
+    attributes:
+      label: Execution authority
+      options:
+        - label: This issue does not by itself authorize production or destructive migration execution.
+          required: true
