@@ -3,10 +3,19 @@
   "commands": {
     "test": "npm test",
     "check": "npm run check",
-    "validate": "npm run validate"
+    "validate": "npm run validate",
+    "evaluate": "npm run evaluate",
+    "pack": "npm pack --dry-run"
   },
   "verification": {
     "required": ["test", "check", "validate"],
+    "profiles": {
+      "default": ["test", "check", "validate"],
+      "migration": ["test", "check", "validate", "evaluate"],
+      "security": ["test", "check", "validate", "evaluate"],
+      "release": ["test", "check", "validate", "evaluate", "pack"],
+      "performance": ["test", "check", "validate", "evaluate"]
+    },
     "timeoutMs": 300000
   },
   "boundaries": [
