@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "debug-root-cause",
+  "description": "Diagnose a defect without confusing symptoms, speculation, or retries with an evidence-backed root cause.",
+  "requiredOutcomes": [
+    "The symptom and expected behavior are recorded separately.",
+    "A minimal reproduction or bounded unreproducible result is reported.",
+    "Root-cause evidence distinguishes the chosen cause from credible alternatives.",
+    "Fix scope and regression evidence are reported separately when remediation is authorized."
+  ],
+  "forbiddenOutcomes": [
+    "Files are modified for a diagnose-only request.",
+    "Retries, skipped checks, or arbitrary sleeps are presented as a fix.",
+    "Secrets or raw environment values are persisted as diagnostic evidence.",
+    "A root cause is claimed from proximity or speculation alone."
+  ]
+}

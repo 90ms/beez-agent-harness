@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Debug"
+  short_description: "Diagnose defects with reproducible evidence"
+  default_prompt: "Use $beez-debug to reproduce, diagnose, and safely fix this defect."
