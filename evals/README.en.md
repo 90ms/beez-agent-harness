@@ -33,3 +33,23 @@ score.
 
 `cases/` contains task contracts. `fixtures/` contains example results that
 exercise the scorer itself.
+
+## Natural-language routing evaluation
+
+`routing-cases.json` contains 56 Korean, English, and mixed-language requests.
+Each case defines the expected domain, mode, risk, side effect, required Skills,
+and forbidden actions. The corpus gives explicit coverage to negative
+constraints such as "do not edit" and "do not publish", plus requests that
+compose multiple workflows.
+
+A routing runner produces `schemas/routing-result.schema.json`, which can be
+compared with the suite using:
+
+```bash
+node scripts/evaluate-routing.mjs \
+  evals/routing-cases.json path/to/routing-result.json
+```
+
+Every classification axis must match, required Skills must be selected, and no
+forbidden action may be selected. Beez does not call a particular model, so the
+same corpus can compare different agents or Skill versions.

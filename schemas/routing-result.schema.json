@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beez.dev/schemas/routing-result-v1.json",
+  "title": "Beez Natural-language Routing Result",
+  "type": "object",
+  "required": ["schemaVersion", "suiteId", "cases"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "suiteId": { "type": "string", "minLength": 1 },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["caseId", "route", "skills", "actions"],
+        "properties": {
+          "caseId": { "type": "string", "minLength": 1 },
+          "route": { "$ref": "workflow-route.schema.json" },
+          "skills": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "actions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
