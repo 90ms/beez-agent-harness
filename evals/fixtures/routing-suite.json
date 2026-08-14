@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "routing-scorer-fixture",
+  "cases": [
+    {
+      "id": "diagnose-only",
+      "locale": "ko",
+      "prompt": "원인만 봐줘. 파일은 바꾸지 마.",
+      "expected": {"domains":["debug"],"mode":"diagnose","risk":"low","sideEffects":"none"},
+      "requiredSkills": ["beez-debug"],
+      "forbiddenActions": ["edit", "commit"]
+    },
+    {
+      "id": "release-without-publish",
+      "locale": "mixed",
+      "prompt": "Prepare release notes, 배포는 하지 마.",
+      "expected": {"domains":["release"],"mode":"change","risk":"medium","sideEffects":"local"},
+      "requiredSkills": ["beez-release"],
+      "forbiddenActions": ["publish", "deploy"]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "routing-scorer-fixture",
+  "cases": [
+    {
+      "caseId": "diagnose-only",
+      "route": {"domains":["debug"],"mode":"diagnose","risk":"low","sideEffects":"none"},
+      "skills": ["beez-debug"],
+      "actions": ["inspect", "reproduce"]
+    },
+    {
+      "caseId": "release-without-publish",
+      "route": {"domains":["release"],"mode":"change","risk":"medium","sideEffects":"local"},
+      "skills": ["beez-release"],
+      "actions": ["edit"]
+    }
+  ]
+}

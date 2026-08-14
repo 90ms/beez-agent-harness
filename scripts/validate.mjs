@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { validateRoutingSuite } from "../lib/routing-evaluation.js";
 import { validateSkillRoot } from "../lib/validation.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -110,6 +111,14 @@ const evaluationCase = await json("evals/cases/scoped-bug-fix.json");
 assert.equal(evaluationCase.schemaVersion, 1);
 assert.ok(evaluationCase.requiredOutcomes.length > 0);
 assert.ok(evaluationCase.forbiddenOutcomes.length > 0);
+const routingSuite = await json("evals/routing-cases.json");
+validateRoutingSuite(routingSuite);
+assert.ok(routingSuite.cases.length >= 50, "Routing corpus must contain at least 50 cases");
+assert.deepEqual(
+  [...new Set(routingSuite.cases.map((entry) => entry.locale))].sort(),
+  ["en", "ko", "mixed"],
+  "Routing corpus must cover English, Korean, and mixed-language requests",
+);
 
 console.log(
   `Validated ${plugin.name} ${plugin.version}: ${skillFolders.length} skills, ${presets.length} presets, and ${schemaFiles.length} schemas.`,

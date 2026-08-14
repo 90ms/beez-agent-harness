@@ -8,9 +8,9 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check bin/beez-harness.js && node --check lib/evaluation.js && node --check lib/harness.js && node --check lib/runs.js && node --check lib/validation.js && node --check lib/verify.js && node --check scripts/evaluate.mjs && node --check scripts/validate.mjs && node --check scripts/check-release.mjs",
+    "check": "node --check bin/beez-harness.js && node --check lib/evaluation.js && node --check lib/harness.js && node --check lib/routing-evaluation.js && node --check lib/runs.js && node --check lib/validation.js && node --check lib/verify.js && node --check scripts/evaluate.mjs && node --check scripts/evaluate-routing.mjs && node --check scripts/validate.mjs && node --check scripts/check-release.mjs",
     "validate": "node scripts/validate.mjs",
-    "evaluate": "node scripts/evaluate.mjs evals/fixtures/passing-result.json"
+    "evaluate": "node scripts/evaluate.mjs evals/fixtures/passing-result.json && node scripts/evaluate-routing.mjs evals/fixtures/routing-suite.json evals/fixtures/passing-routing-result.json"
   },
   "files": [
     ".agents/",
