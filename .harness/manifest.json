@@ -3,8 +3,8 @@
   "harnessVersion": "0.3.0",
   "preset": "base",
   "managedFiles": {
-    ".harness/generated/AGENTS.md": "fec770f48b14d6567b3259d0ec1edcd197495f127cfd9b8cc2e0f6d4925c2a9a"
+    ".harness/generated/AGENTS.md": "81bf3dd5e6414104d512a0b407e3785b814c1e66c42e829f4cdd3f2e9263f23e"
   },
   "createdAt": "2026-07-23T15:43:50.884Z",
-  "updatedAt": "2026-08-14T05:12:02.072Z"
+  "updatedAt": "2026-08-14T05:43:42.150Z"
 }
