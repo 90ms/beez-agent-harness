@@ -20,6 +20,37 @@ const releaseWorkflow = await readFile(
   path.join(root, ".github/workflows/release.yml"),
   "utf8",
 );
+const ciWorkflow = await readFile(
+  path.join(root, ".github/workflows/ci.yml"),
+  "utf8",
+);
+for (const [file, workflow] of [
+  ["ci.yml", ciWorkflow],
+  ["release.yml", releaseWorkflow],
+]) {
+  assert.doesNotMatch(
+    workflow,
+    /pull_request_target:/,
+    `${file} must not run untrusted code through pull_request_target`,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /^\s*- uses: [^\n]+@(?![a-f0-9]{40}(?:\s|$))[^\n]+$/m,
+    `${file} actions must use immutable full commit SHAs`,
+  );
+  assert.match(workflow, /timeout-minutes:/, `${file} jobs need timeouts`);
+}
+assert.match(ciWorkflow, /cancel-in-progress: true/);
+assert.match(ciWorkflow, /dependency-review-action@[a-f0-9]{40} # v5\.0\.0/);
+assert.match(releaseWorkflow, /fetch-depth: 0/);
+assert.match(releaseWorkflow, /check-release-ancestry\.mjs HEAD origin\/main/);
+assert.match(releaseWorkflow, /npm run evaluate/);
+const dependabot = await readFile(
+  path.join(root, ".github/dependabot.yml"),
+  "utf8",
+);
+assert.match(dependabot, /^version: 2$/m);
+assert.match(dependabot, /package-ecosystem: github-actions/);
 const codeowners = await readFile(path.join(root, ".github/CODEOWNERS"), "utf8");
 const pullRequestTemplate = await readFile(
   path.join(root, ".github/pull_request_template.md"),
