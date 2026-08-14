@@ -34,6 +34,11 @@ score.
 `cases/` contains task contracts. `fixtures/` contains example results that
 exercise the scorer itself.
 
+The v0.4 contracts include scoped debugging, reversible migration, scoped
+security audit, gated release, evidence-backed performance work, governed
+GitHub work, and general bug-fix behavior. These are contracts for external
+runners; they do not execute an agent or project mutation by themselves.
+
 ## Natural-language routing evaluation
 
 `routing-cases.json` contains 56 Korean, English, and mixed-language requests.
@@ -53,3 +58,9 @@ node scripts/evaluate-routing.mjs \
 Every classification axis must match, required Skills must be selected, and no
 forbidden action may be selected. Beez does not call a particular model, so the
 same corpus can compare different agents or Skill versions.
+
+`fixtures/routing-suite.json` is the compact scorer fixture, while
+`routing-cases.json` is the full acceptance corpus. Routing results use the
+four-axis workflow route (`domains`, `mode`, `risk`, and `sideEffects`) plus
+selected Skills and actions. Negative constraints must remain absent from the
+reported actions even in composed requests.

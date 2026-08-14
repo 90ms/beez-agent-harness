@@ -8,6 +8,20 @@ import { validateRoutingSuite } from "../lib/routing-evaluation.js";
 import { validateSkillRoot } from "../lib/validation.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
+const publicSkills = [
+  "beez-debug",
+  "beez-github",
+  "beez-implement",
+  "beez-migrate",
+  "beez-performance",
+  "beez-plan",
+  "beez-release",
+  "beez-review",
+  "beez-security",
+  "beez-spec",
+  "beez-verify",
+  "using-beez-harness",
+];
 
 async function json(relativePath) {
   return JSON.parse(await readFile(path.join(root, relativePath), "utf8"));
@@ -128,15 +142,33 @@ assert.match(
 const skillRoot = path.join(root, "skills");
 const skillFolders = await validateSkillRoot({
   skillRoot,
-  requiredSkills: [
-  "beez-implement",
-  "beez-plan",
-  "beez-review",
-  "beez-spec",
-  "beez-verify",
-  "using-beez-harness",
-  ],
+  requiredSkills: publicSkills,
 });
+const readmes = await Promise.all([
+  readFile(path.join(root, "README.md"), "utf8"),
+  readFile(path.join(root, "README.en.md"), "utf8"),
+]);
+for (const skill of publicSkills) {
+  for (const [index, readme] of readmes.entries()) {
+    assert.ok(
+      readme.includes(`\`${skill}\``),
+      `${index === 0 ? "README.md" : "README.en.md"} must document ${skill}`,
+    );
+  }
+}
+for (const [index, readme] of readmes.entries()) {
+  const file = index === 0 ? "README.md" : "README.en.md";
+  assert.match(
+    readme,
+    /run start\|status\|list\|resume\|checkpoint\|finish\|gc/,
+    `${file} must document the complete run command surface`,
+  );
+  assert.match(
+    readme,
+    /verify --command <name>\|--required\|--profile <name>/,
+    `${file} must document verification profiles`,
+  );
+}
 
 const presetRoot = path.join(root, "presets");
 const presets = (await readdir(presetRoot, { withFileTypes: true }))

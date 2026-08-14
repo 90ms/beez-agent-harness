@@ -1,5 +1,7 @@
 # GitHub 거버넌스
 
+[한국어](github-governance.md) | [English](../en/github-governance.md)
+
 저장소 파일은 협업 형식을 표준화하고 GitHub ruleset은 원격 상태를 강제합니다.
 이 문서나 CODEOWNERS, template을 커밋하는 것만으로 ruleset이 생성되거나
 변경되지는 않습니다. 저장소 관리자 또는 repository rules 편집 권한이 있는
@@ -59,6 +61,29 @@ GitHub 설정에서 dependency graph와 dependency review도 활성화해야
 maintainer 구성에서 가능하면 `npm` environment에 required reviewer를 지정하며,
 Actions source를 승인된 범위로 제한합니다. 이 설정은 workflow YAML만으로 강제할
 수 없습니다.
+
+## Actions와 dependency supply chain
+
+CI와 release workflow는 read-only 기본 permission, 게시 단계에만 필요한 명시적
+job permission, 제한된 timeout, 변경 불가능한 full-commit Action pin을
+사용합니다. Checkout credential은 보존하지 않습니다. PR CI는 이전 중복 run을
+취소하지만 진행 중인 release publication은 취소하지 않습니다.
+
+Dependabot은 매주 묶음 Action pin update를 제안합니다. Merge 전에 upstream tag,
+release note, 정확한 commit, 요청 permission, CI 결과를 review합니다. SHA 옆 버전
+comment는 설명일 뿐 실제 identity는 SHA입니다. Dependency graph가 활성화되면
+PR에서 dependency review도 실행합니다.
+
+Release workflow는 안전하지 않은 ref 또는 `origin/main`에서 도달할 수 없는 tag
+commit을 거부하고, 보호된 publish job 전에 저장소 검증, 결정론적 평가, test,
+package dry-run을 실행합니다.
+
+## Beez GitHub workflow 권한
+
+`beez-github`는 읽기 전용 issue/PR 조사, local branch/commit 작업, PR 생성·label·
+merge·tag·release·setting 변경 같은 repository mutation을 구분합니다. 한 작업
+권한이 다른 mutation을 허용하지 않습니다. 정확한 repository를 기록하고 “draft
+PR만 열고 merge하지 마” 같은 제약을 복합 workflow 전체에서 보존합니다.
 
 ## 비상 변경
 

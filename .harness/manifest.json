@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "harnessVersion": "0.3.0",
+  "harnessVersion": "0.4.0",
   "preset": "base",
   "managedFiles": {
-    ".harness/generated/AGENTS.md": "81bf3dd5e6414104d512a0b407e3785b814c1e66c42e829f4cdd3f2e9263f23e"
+    ".harness/generated/AGENTS.md": "bc1b1031975cb04926725aca09d9e01d2d5e97d7c177d42cac67da0e04cb5bc9"
   },
   "createdAt": "2026-07-23T15:43:50.884Z",
-  "updatedAt": "2026-08-14T05:43:42.150Z"
+  "updatedAt": "2026-08-14T06:03:04.891Z"
 }
