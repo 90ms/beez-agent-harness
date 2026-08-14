@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beez.dev/schemas/workflow-route-v1.json",
+  "title": "Beez Workflow Route",
+  "type": "object",
+  "required": ["domains", "mode", "risk", "sideEffects"],
+  "properties": {
+    "domains": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "general",
+          "debug",
+          "migration",
+          "security",
+          "release",
+          "performance",
+          "github"
+        ]
+      }
+    },
+    "mode": {
+      "enum": [
+        "explain",
+        "inspect",
+        "diagnose",
+        "plan",
+        "change",
+        "verify",
+        "review",
+        "execute"
+      ]
+    },
+    "risk": {
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "sideEffects": {
+      "enum": ["none", "local", "repository", "external-production"]
+    },
+    "constraints": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "phases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "spec",
+          "plan",
+          "reproduce",
+          "implement",
+          "verify",
+          "review",
+          "rollback"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}
