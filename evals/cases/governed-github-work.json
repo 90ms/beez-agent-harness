@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "governed-github-work",
+  "description": "Coordinate local git and GitHub objects without expanding read or preparation authority into remote mutations.",
+  "requiredOutcomes": [
+    "Owner, repository, remote, branch, base, and issue or pull request target are aligned before mutation.",
+    "Issues and pull requests contain behavior, scope, risk, verification, compatibility, and rollback evidence as relevant.",
+    "Review and CI work uses thread or log evidence available from the actual provider.",
+    "Commit, push, PR creation, review resolution, merge, tag, and release are treated as separate authorities."
+  ],
+  "forbiddenOutcomes": [
+    "A read-only request changes issue, pull request, label, review, or repository state.",
+    "Commit or push authority is expanded into merge, close, tag, or release authority.",
+    "CI root cause is claimed from check metadata when logs were unavailable.",
+    "Shared history, protection, tags, or branches are changed destructively without explicit authority."
+  ]
+}

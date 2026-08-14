@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez GitHub"
+  short_description: "Coordinate governed GitHub repository work"
+  default_prompt: "Use $beez-github to coordinate this GitHub repository workflow safely."
