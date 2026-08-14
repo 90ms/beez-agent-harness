@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Release"
+  short_description: "Prepare and publish releases with gates"
+  default_prompt: "Use $beez-release to prepare and verify this release safely."
