@@ -25,7 +25,7 @@ async function writeSkill(root, name, link = "") {
   );
   await writeFile(
     path.join(directory, "agents", "openai.yaml"),
-    `interface:\n  display_name: "Test Skill"\n  short_description: "Validate an extensible test skill"\n  default_prompt: "Use $${name} to validate this test skill."\n`,
+    `interface:\r\n  display_name: "Test Skill"\r\n  short_description: "Validate an extensible test skill"\r\n  default_prompt: "Use $${name} to validate this test skill."\r\n`,
   );
   return directory;
 }
