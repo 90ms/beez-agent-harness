@@ -1,6 +1,6 @@
 # Project Agent Guidance
 
-This repository uses Beez Agent Harness {{harnessVersion}}.
+This repository uses Beez Agent Harness.
 
 Before starting software work:
 
