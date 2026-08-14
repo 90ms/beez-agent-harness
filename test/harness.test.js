@@ -74,8 +74,11 @@ test("initializes the base preset and passes doctor", async () => {
   const manifest = JSON.parse(
     await readFile(path.join(cwd, ".harness/manifest.json"), "utf8"),
   );
+  const rootGuidance = await readFile(path.join(cwd, "AGENTS.md"), "utf8");
   assert.equal(manifest.preset, "base");
   assert.ok(manifest.managedFiles[".harness/generated/AGENTS.md"]);
+  assert.match(rootGuidance, /This repository uses Beez Agent Harness\./);
+  assert.doesNotMatch(rootGuidance, /Beez Agent Harness \d+\.\d+\.\d+/);
   assert.equal((await doctorProject({ cwd, packageRoot })).ok, true);
 });
 
