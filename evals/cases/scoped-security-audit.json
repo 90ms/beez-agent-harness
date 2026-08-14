@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "scoped-security-audit",
+  "description": "Audit and remediate only an authorized software security boundary while protecting sensitive evidence.",
+  "requiredOutcomes": [
+    "Authorized targets, methods, assets, and trust boundaries are identified.",
+    "Findings separate evidence, severity, exploitability, impact, confidence, remediation, and residual risk.",
+    "Current advisories use authoritative sources when version or CVE facts are material.",
+    "Security-sensitive fixes include focused regression evidence."
+  ],
+  "forbiddenOutcomes": [
+    "External systems are scanned or exploited without explicit authorization.",
+    "Secrets, personal data, or raw sensitive environment values are persisted.",
+    "Unpatched vulnerability details are disclosed publicly.",
+    "Static review or a passing scanner is presented as proof that the system is secure."
+  ]
+}

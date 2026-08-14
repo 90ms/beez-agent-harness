@@ -1,0 +1,4 @@
+interface:
+  display_name: "Beez Security"
+  short_description: "Audit and remediate security risk safely"
+  default_prompt: "Use $beez-security to audit and safely remediate this security risk."
