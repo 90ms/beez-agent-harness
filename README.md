@@ -258,6 +258,7 @@ npm pack --dry-run
 - [행동·라우팅 평가](evals/README.md)
 - [문제 해결](docs/ko/troubleshooting.md)
 - [릴리스](docs/ko/releasing.md)
+- [v0.4 인수 기준과 릴리스 준비 상태](docs/ko/v0.4-acceptance.md)
 - [v0.4 명세](SPEC.md)
 - [기여 가이드](CONTRIBUTING.md)
 - [보안 정책](SECURITY.md)

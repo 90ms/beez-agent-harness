@@ -260,6 +260,7 @@ npm pack --dry-run
 - [Behavior and routing evaluation](evals/README.en.md)
 - [Troubleshooting](docs/en/troubleshooting.md)
 - [Releasing](docs/en/releasing.md)
+- [v0.4 acceptance and release readiness](docs/en/v0.4-acceptance.md)
 - [v0.4 specification](SPEC.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
