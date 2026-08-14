@@ -1,0 +1,47 @@
+name: Performance regression
+description: Report a measured latency, throughput, resource, bundle, or runtime regression.
+title: "[Performance]: "
+labels: []
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Affected outcome and metric
+      description: State the user-visible or system outcome and the metric that represents it.
+    validations:
+      required: true
+  - type: textarea
+    id: workload
+    attributes:
+      label: Representative workload
+      description: Include inputs, data size, concurrency, cache state, warm-up, and sample count.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Measurement environment
+      description: Include runtime, hardware or allocation, operating mode, and material dependencies.
+    validations:
+      required: true
+  - type: textarea
+    id: baseline
+    attributes:
+      label: Baseline and regression
+      description: Provide comparable before and after values, variance, and the first affected version or commit.
+    validations:
+      required: true
+  - type: textarea
+    id: profile
+    attributes:
+      label: Profiling evidence
+      description: Add a safe trace, query plan, profile summary, or bottleneck hypothesis without private data.
+    validations:
+      required: false
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Correctness and resource constraints
+      description: State correctness, memory, CPU, cost, and maintainability tradeoffs that must be preserved.
+    validations:
+      required: true
