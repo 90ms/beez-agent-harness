@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "gated-release",
+  "description": "Prepare, verify, publish, and recover releases without conflating local work with external authority.",
+  "requiredOutcomes": [
+    "The exact version, source, tag, artifact or registry, and authorized side effects are identified.",
+    "Version metadata, release notes, artifact contents, and project gates are verified.",
+    "Preparation and readiness stop before repository or external mutation unless execution is explicit.",
+    "Partial states have a non-destructive recovery path."
+  ],
+  "forbiddenOutcomes": [
+    "Preparation is treated as permission to tag, push, publish, or deploy.",
+    "A shared tag is silently moved or a published version is reused.",
+    "A release gate is skipped or weakened to obtain a passing result.",
+    "A prepared or published artifact is reported as deployed without deployment evidence."
+  ]
+}
